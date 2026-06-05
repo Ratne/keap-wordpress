@@ -76,6 +76,7 @@ class KC_Admin {
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_init', array( $this, 'maybe_handle_oauth_callback' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_ajax_kc_reveal_secret', array( $this, 'ajax_reveal_secret' ) );
 	}
 
 	/**
@@ -116,12 +117,46 @@ class KC_Admin {
 			'kc-admin',
 			'kcAdmin',
 			array(
-				'i18n' => array(
-					'show' => __( 'Show', 'keap-connect' ),
-					'hide' => __( 'Hide', 'keap-connect' ),
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'revealNonce' => wp_create_nonce( 'kc_reveal_secret' ),
+				'i18n'        => array(
+					'show'  => __( 'Show', 'keap-connect' ),
+					'hide'  => __( 'Hide', 'keap-connect' ),
+					'error' => __( 'Could not reveal the value.', 'keap-connect' ),
 				),
 			)
 		);
+	}
+
+	/**
+	 * Handler AJAX: rivela un segreto su richiesta (azione autenticata).
+	 *
+	 * @return void
+	 */
+	public function ajax_reveal_secret() {
+		check_ajax_referer( 'kc_reveal_secret' );
+
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( array( 'message' => __( 'Not allowed.', 'keap-connect' ) ), 403 );
+		}
+
+		$field   = isset( $_POST['field'] ) ? sanitize_key( wp_unslash( $_POST['field'] ) ) : '';
+		$allowed = array( 'oauth_access_token', 'oauth_refresh_token' );
+		if ( ! in_array( $field, $allowed, true ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid field.', 'keap-connect' ) ), 400 );
+		}
+
+		// Audit: registra chi/cosa ha rivelato (senza il valore).
+		$this->logger->log(
+			array(
+				'correlation_id' => KC_Logger::new_correlation_id(),
+				'direction'      => KC_Logger::DIR_IN,
+				'status'         => KC_Logger::STATUS_RECEIVED,
+				'message'        => 'Secret revealed in admin: ' . $field . ' (user #' . get_current_user_id() . ')',
+			)
+		);
+
+		wp_send_json_success( array( 'value' => (string) $this->settings->get( $field ) ) );
 	}
 
 	/**
@@ -278,14 +313,32 @@ class KC_Admin {
 			$method = KC_Settings::AUTH_OAUTH;
 		}
 
-		$this->settings->update(
-			array(
-				'auth_method'         => $method,
-				'oauth_client_id'     => isset( $_POST['oauth_client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['oauth_client_id'] ) ) : '',
-				'oauth_client_secret' => isset( $_POST['oauth_client_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['oauth_client_secret'] ) ) : '',
-				'pat_token'           => isset( $_POST['pat_token'] ) ? sanitize_text_field( wp_unslash( $_POST['pat_token'] ) ) : '',
-			)
+		$update = array(
+			'auth_method'     => $method,
+			'oauth_client_id' => isset( $_POST['oauth_client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['oauth_client_id'] ) ) : '',
 		);
+
+		// Client Secret (write-only): vuoto = mantieni; "clear" = svuota; valore = sostituisci.
+		if ( ! empty( $_POST['oauth_client_secret_clear'] ) ) {
+			$update['oauth_client_secret'] = '';
+		} else {
+			$cs = isset( $_POST['oauth_client_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['oauth_client_secret'] ) ) : '';
+			if ( '' !== $cs ) {
+				$update['oauth_client_secret'] = $cs;
+			}
+		}
+
+		// PAT/SAK (write-only): stessa logica.
+		if ( ! empty( $_POST['pat_token_clear'] ) ) {
+			$update['pat_token'] = '';
+		} else {
+			$pat = isset( $_POST['pat_token'] ) ? sanitize_text_field( wp_unslash( $_POST['pat_token'] ) ) : '';
+			if ( '' !== $pat ) {
+				$update['pat_token'] = $pat;
+			}
+		}
+
+		$this->settings->update( $update );
 
 		// Esegue subito una verifica per aggiornare il semaforo, se c'e' almeno un token disponibile.
 		if ( $this->auth->get_tokens_to_try() ) {
@@ -426,25 +479,75 @@ class KC_Admin {
 	 * @return array Risultato della chiamata.
 	 */
 	private function run_connection_check() {
-		$result = $this->client->get_contact_model( KC_Logger::new_correlation_id() );
+		$method      = $this->settings->get( 'auth_method' );
+		$correlation = KC_Logger::new_correlation_id();
+		$parts       = array();
+		$all_ok      = true;
+		$tested      = false;
 
-		$message = '';
-		if ( $result['success'] ) {
-			$message = isset( $result['token_type'] ) ? $result['token_type'] : '';
-		} else {
-			$message = ( '' !== $result['error'] ) ? $result['error'] : ( $result['code'] ? 'HTTP ' . $result['code'] : 'error' );
+		// OAuth (se metodo oauth o entrambi).
+		if ( in_array( $method, array( KC_Settings::AUTH_OAUTH, KC_Settings::AUTH_BOTH ), true ) ) {
+			$tested = true;
+			$token  = $this->auth->get_oauth_access_token();
+			if ( '' === $token ) {
+				$all_ok  = false;
+				$parts[] = 'OAuth: ' . __( 'not connected', 'keap-connect' );
+			} else {
+				$r = $this->client->test_with_token( $token, KC_Settings::AUTH_OAUTH, $correlation );
+				if ( $r['success'] ) {
+					$parts[] = 'OAuth: ' . __( 'OK', 'keap-connect' );
+				} else {
+					$all_ok  = false;
+					$parts[] = 'OAuth: ' . __( 'FAIL', 'keap-connect' ) . ' (' . $this->check_detail( $r ) . ')';
+				}
+			}
+		}
+
+		// PAT/SAK (se metodo pat o entrambi).
+		if ( in_array( $method, array( KC_Settings::AUTH_PAT, KC_Settings::AUTH_BOTH ), true ) ) {
+			$tested = true;
+			$pat    = $this->settings->get( 'pat_token' );
+			if ( '' === $pat ) {
+				$all_ok  = false;
+				$parts[] = 'PAT/SAK: ' . __( 'not configured', 'keap-connect' );
+			} else {
+				$r = $this->client->test_with_token( $pat, KC_Settings::AUTH_PAT, $correlation );
+				if ( $r['success'] ) {
+					$parts[] = 'PAT/SAK: ' . __( 'OK', 'keap-connect' );
+				} else {
+					$all_ok  = false;
+					$parts[] = 'PAT/SAK: ' . __( 'FAIL', 'keap-connect' ) . ' (' . $this->check_detail( $r ) . ')';
+				}
+			}
+		}
+
+		if ( ! $tested ) {
+			$all_ok = false;
 		}
 
 		$this->settings->update(
 			array(
-				'last_check_status'  => $result['success'] ? 'ok' : 'fail',
+				'last_check_status'  => $all_ok ? 'ok' : 'fail',
 				'last_check_time'    => time(),
-				'last_check_message' => is_string( $message ) ? $message : '',
-				'last_check_token'   => isset( $result['token_type'] ) ? $result['token_type'] : '',
+				'last_check_message' => implode( ' · ', $parts ),
+				'last_check_token'   => $method,
 			)
 		);
 
-		return $result;
+		return array( 'success' => $all_ok );
+	}
+
+	/**
+	 * Estrae un dettaglio leggibile da un risultato di chiamata fallito.
+	 *
+	 * @param array $r Risultato.
+	 * @return string
+	 */
+	private function check_detail( $r ) {
+		if ( ! empty( $r['error'] ) ) {
+			return (string) $r['error'];
+		}
+		return $r['code'] ? 'HTTP ' . $r['code'] : __( 'error', 'keap-connect' );
 	}
 
 	/**
@@ -709,13 +812,10 @@ class KC_Admin {
 						esc_html__( 'Last test: %s', 'keap-connect' ),
 						esc_html( wp_date( 'Y-m-d H:i', (int) $s['last_check_time'] ) )
 					);
-					if ( 'ok' === $check_status && ! empty( $s['last_check_token'] ) ) {
-						echo ' &middot; ' . esc_html( strtoupper( $s['last_check_token'] ) );
-					}
 					?>
 				</span>
-				<?php if ( 'fail' === $check_status && ! empty( $s['last_check_message'] ) ) : ?>
-					<span class="description kc-status-detail"><?php echo esc_html( $s['last_check_message'] ); ?></span>
+				<?php if ( ! empty( $s['last_check_message'] ) ) : ?>
+					<span class="description kc-status-detail <?php echo 'ok' === $check_status ? 'kc-status-detail-ok' : ''; ?>"><?php echo esc_html( $s['last_check_message'] ); ?></span>
 				<?php endif; ?>
 			<?php endif; ?>
 		</div>
@@ -745,7 +845,16 @@ class KC_Admin {
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Client Secret', 'keap-connect' ); ?></th>
-					<td><input type="password" class="regular-text" name="oauth_client_secret" value="<?php echo esc_attr( $s['oauth_client_secret'] ); ?>" autocomplete="off" /></td>
+					<td>
+						<input type="password" class="regular-text" name="oauth_client_secret" value="" autocomplete="new-password" />
+						<?php if ( '' !== (string) $s['oauth_client_secret'] ) : ?>
+							<span class="kc-badge kc-badge-ok"><?php esc_html_e( 'Set', 'keap-connect' ); ?></span>
+							<label class="kc-clear-label"><input type="checkbox" name="oauth_client_secret_clear" value="1" /> <?php esc_html_e( 'Clear', 'keap-connect' ); ?></label>
+						<?php else : ?>
+							<span class="kc-badge kc-badge-off"><?php esc_html_e( 'Not set', 'keap-connect' ); ?></span>
+						<?php endif; ?>
+						<p class="description"><?php esc_html_e( 'Write-only: leave empty to keep the current value; enter a new value to replace it.', 'keap-connect' ); ?></p>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Redirect URI', 'keap-connect' ); ?></th>
@@ -779,8 +888,8 @@ class KC_Admin {
 					<th scope="row"><?php esc_html_e( 'Access token', 'keap-connect' ); ?></th>
 					<td>
 						<?php if ( ! empty( $s['oauth_access_token'] ) ) : ?>
-							<input type="password" class="large-text code kc-secret" readonly value="<?php echo esc_attr( $s['oauth_access_token'] ); ?>" onfocus="this.select()" />
-							<button type="button" class="button kc-reveal" data-shown="0"><?php esc_html_e( 'Show', 'keap-connect' ); ?></button>
+							<input type="password" class="large-text code kc-secret-ajax" readonly value="" data-field="oauth_access_token" placeholder="••••••••••••••••••••" onfocus="this.select()" />
+							<button type="button" class="button kc-reveal-ajax" data-field="oauth_access_token" data-shown="0"><?php esc_html_e( 'Show', 'keap-connect' ); ?></button>
 						<?php else : ?>
 							<em class="description"><?php esc_html_e( 'None', 'keap-connect' ); ?></em>
 						<?php endif; ?>
@@ -790,8 +899,8 @@ class KC_Admin {
 					<th scope="row"><?php esc_html_e( 'Refresh token', 'keap-connect' ); ?></th>
 					<td>
 						<?php if ( ! empty( $s['oauth_refresh_token'] ) ) : ?>
-							<input type="password" class="large-text code kc-secret" readonly value="<?php echo esc_attr( $s['oauth_refresh_token'] ); ?>" onfocus="this.select()" />
-							<button type="button" class="button kc-reveal" data-shown="0"><?php esc_html_e( 'Show', 'keap-connect' ); ?></button>
+							<input type="password" class="large-text code kc-secret-ajax" readonly value="" data-field="oauth_refresh_token" placeholder="••••••••••••••••••••" onfocus="this.select()" />
+							<button type="button" class="button kc-reveal-ajax" data-field="oauth_refresh_token" data-shown="0"><?php esc_html_e( 'Show', 'keap-connect' ); ?></button>
 						<?php else : ?>
 							<em class="description"><?php esc_html_e( 'None', 'keap-connect' ); ?></em>
 						<?php endif; ?>
@@ -805,7 +914,14 @@ class KC_Admin {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Token (Personal Access Token / Service Account Key)', 'keap-connect' ); ?></th>
 					<td>
-						<input type="password" class="regular-text" name="pat_token" value="<?php echo esc_attr( $s['pat_token'] ); ?>" autocomplete="off" />
+						<input type="password" class="regular-text" name="pat_token" value="" autocomplete="new-password" />
+						<?php if ( '' !== (string) $s['pat_token'] ) : ?>
+							<span class="kc-badge kc-badge-ok"><?php esc_html_e( 'Set', 'keap-connect' ); ?></span>
+							<label class="kc-clear-label"><input type="checkbox" name="pat_token_clear" value="1" /> <?php esc_html_e( 'Clear', 'keap-connect' ); ?></label>
+						<?php else : ?>
+							<span class="kc-badge kc-badge-off"><?php esc_html_e( 'Not set', 'keap-connect' ); ?></span>
+						<?php endif; ?>
+						<p class="description"><?php esc_html_e( 'Write-only: leave empty to keep the current value; enter a new value to replace it.', 'keap-connect' ); ?></p>
 						<p class="description"><a href="https://developer.infusionsoft.com/pat-and-sak/" target="_blank" rel="noopener">developer.infusionsoft.com/pat-and-sak</a></p>
 					</td>
 				</tr>
@@ -1080,8 +1196,8 @@ class KC_Admin {
 							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
 							<p class="description"><?php esc_html_e( 'For security the token is not shown (stored hashed). Click "Regenerate" to create and view a new one.', 'keap-connect' ); ?></p>
 						<?php else : ?>
-							<em class="description"><?php esc_html_e( 'None', 'keap-connect' ); ?></em>
-							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
+							<em class="description"><?php esc_html_e( 'No token yet.', 'keap-connect' ); ?></em>
+							<button type="submit" form="kc-form-rotate-bearer" class="button button-primary"><?php esc_html_e( 'Generate', 'keap-connect' ); ?></button>
 						<?php endif; ?>
 						<p class="description"><?php esc_html_e( 'Send as header: Authorization: Bearer <token>', 'keap-connect' ); ?></p>
 					</td>
@@ -1099,11 +1215,14 @@ class KC_Admin {
 							<input type="text" class="large-text code" readonly value="<?php echo esc_attr( add_query_arg( 'secret', rawurlencode( $show_cron_secret ), $cron_base_url ) ); ?>" onfocus="this.select()" />
 							<button type="submit" form="kc-form-rotate-cron" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
 							<p class="description kc-show-once"><?php esc_html_e( 'Copy it now: the secret will no longer be shown after you reload the page.', 'keap-connect' ); ?></p>
-						<?php else : ?>
+						<?php elseif ( '' !== (string) $s['external_cron_secret_hash'] ) : ?>
 							<p class="description"><?php esc_html_e( 'URL to call (GET) - the secret is hidden:', 'keap-connect' ); ?></p>
 							<input type="text" class="large-text code" value="<?php echo esc_attr( $cron_base_url . '?secret=••••••' ); ?>" disabled />
 							<button type="submit" form="kc-form-rotate-cron" class="button"><?php esc_html_e( 'Regenerate cron secret', 'keap-connect' ); ?></button>
 							<p class="description"><?php esc_html_e( 'For security the secret is not shown. Click "Regenerate cron secret" to create and view a new one.', 'keap-connect' ); ?></p>
+						<?php else : ?>
+							<p class="description"><?php esc_html_e( 'No cron secret yet.', 'keap-connect' ); ?></p>
+							<button type="submit" form="kc-form-rotate-cron" class="button button-primary"><?php esc_html_e( 'Generate cron secret', 'keap-connect' ); ?></button>
 						<?php endif; ?>
 						<p class="description">
 							<?php

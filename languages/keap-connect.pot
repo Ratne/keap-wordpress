@@ -641,3 +641,48 @@ msgstr ""
 
 msgid "Could not write to wp-config.php. Add the key manually (see below)."
 msgstr ""
+
+msgid "No token yet."
+msgstr ""
+
+msgid "Generate"
+msgstr ""
+
+msgid "No cron secret yet."
+msgstr ""
+
+msgid "Generate cron secret"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid "FAIL"
+msgstr ""
+
+msgid "not connected"
+msgstr ""
+
+msgid "not configured"
+msgstr ""
+
+msgid "Set"
+msgstr ""
+
+msgid "Not set"
+msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Write-only: leave empty to keep the current value; enter a new value to replace it."
+msgstr ""
+
+msgid "Not allowed."
+msgstr ""
+
+msgid "Invalid field."
+msgstr ""
+
+msgid "Could not reveal the value."
+msgstr ""

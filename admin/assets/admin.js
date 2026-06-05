@@ -36,7 +36,44 @@
 		addRow();
 	} );
 
-	var i18n = ( window.kcAdmin && window.kcAdmin.i18n ) || { show: 'Show', hide: 'Hide' };
+	var i18n = ( window.kcAdmin && window.kcAdmin.i18n ) || { show: 'Show', hide: 'Hide', error: 'Error' };
+
+	$( document ).on( 'click', '.kc-reveal-ajax', function ( e ) {
+		e.preventDefault();
+		var $btn = $( this );
+		var $input = $btn.prev( 'input.kc-secret-ajax' );
+		if ( ! $input.length ) {
+			return;
+		}
+
+		// Se gia' mostrato, ri-maschera e svuota (il valore non resta nel DOM).
+		if ( $btn.attr( 'data-shown' ) === '1' ) {
+			$input.attr( 'type', 'password' ).val( '' );
+			$btn.attr( 'data-shown', '0' ).text( i18n.show );
+			return;
+		}
+
+		$btn.prop( 'disabled', true );
+		$.post(
+			( window.kcAdmin && window.kcAdmin.ajaxUrl ) || window.ajaxurl,
+			{
+				action: 'kc_reveal_secret',
+				_ajax_nonce: window.kcAdmin && window.kcAdmin.revealNonce,
+				field: $btn.attr( 'data-field' )
+			}
+		).done( function ( resp ) {
+			if ( resp && resp.success && resp.data ) {
+				$input.attr( 'type', 'text' ).val( resp.data.value );
+				$btn.attr( 'data-shown', '1' ).text( i18n.hide );
+			} else {
+				window.alert( ( resp && resp.data && resp.data.message ) || i18n.error );
+			}
+		} ).fail( function () {
+			window.alert( i18n.error );
+		} ).always( function () {
+			$btn.prop( 'disabled', false );
+		} );
+	} );
 
 	$( document ).on( 'click', '.kc-reveal', function ( e ) {
 		e.preventDefault();

@@ -263,4 +263,45 @@ class KC_Keap_Client {
 	public function get_contact_model( $correlation_id = '' ) {
 		return $this->request( 'GET', '/contacts/model', array(), $correlation_id );
 	}
+
+	/**
+	 * Testa un singolo token specifico (senza fallback) con una GET al modello.
+	 *
+	 * @param string $token          Token Bearer da usare.
+	 * @param string $token_type     Tipo (oauth|pat) per i log.
+	 * @param string $correlation_id Correlazione.
+	 * @return array Risultato normalizzato.
+	 */
+	public function test_with_token( $token, $token_type, $correlation_id = '' ) {
+		$url = KC_Settings::KEAP_API_BASE . '/contacts/model';
+
+		$response = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'GET',
+				'timeout' => 30,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $token,
+					'Accept'        => 'application/json',
+				),
+			)
+		);
+
+		$result = $this->normalize_response( $response, $token_type );
+
+		$this->logger->log(
+			array(
+				'correlation_id' => $correlation_id,
+				'direction'      => KC_Logger::DIR_OUT,
+				'method'         => 'GET',
+				'endpoint'       => $url . ' (test ' . $token_type . ')',
+				'response_code'  => $result['code'],
+				'response_body'  => is_wp_error( $response ) ? $result['error'] : wp_remote_retrieve_body( $response ),
+				'status'         => $result['success'] ? KC_Logger::STATUS_SUCCESS : KC_Logger::STATUS_ERROR,
+				'message'        => 'Test ' . $token_type,
+			)
+		);
+
+		return $result;
+	}
 }

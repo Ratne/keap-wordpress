@@ -132,22 +132,12 @@ class KC_Settings {
 	 * @return void
 	 */
 	public function maybe_seed_defaults() {
+		// Nessun token generato automaticamente: Bearer e secret cron vengono
+		// creati dall'utente con il pulsante "Genera" (cosi' da zero non esistono).
 		$saved = get_option( self::OPTION_SETTINGS, null );
 		if ( null === $saved ) {
-			$saved = $this->defaults();
+			update_option( self::OPTION_SETTINGS, $this->defaults() );
 		}
-		if ( empty( $saved['bearer_token_hash'] ) ) {
-			$token                      = self::generate_token();
-			$saved['bearer_token_hash'] = KC_Crypto::hash_token( $token );
-			// Mostrato una sola volta alla prima apertura della scheda Endpoint.
-			set_transient( 'kc_show_bearer_initial', $token, WEEK_IN_SECONDS );
-		}
-		if ( empty( $saved['external_cron_secret_hash'] ) ) {
-			$secret                            = self::generate_token();
-			$saved['external_cron_secret_hash'] = KC_Crypto::hash_token( $secret );
-			set_transient( 'kc_show_cron_initial', $secret, WEEK_IN_SECONDS );
-		}
-		update_option( self::OPTION_SETTINGS, wp_parse_args( $saved, $this->defaults() ) );
 	}
 
 	/**
