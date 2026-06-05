@@ -184,11 +184,16 @@ class KC_Admin {
 				$this->save_endpoint();
 				break;
 			case 'rotate_bearer':
-				$this->settings->update( array( 'bearer_token' => KC_Settings::generate_token() ) );
+				$token = KC_Settings::generate_token();
+				$this->settings->update( array( 'bearer_token' => $token ) );
+				// Mostra il valore una sola volta dopo la rigenerazione.
+				set_transient( 'kc_show_bearer_' . get_current_user_id(), $token, 5 * MINUTE_IN_SECONDS );
 				$this->redirect_notice( 'endpoint', 'bearer_rotated' );
 				break;
 			case 'rotate_cron_secret':
-				$this->settings->update( array( 'external_cron_secret' => KC_Settings::generate_token() ) );
+				$secret = KC_Settings::generate_token();
+				$this->settings->update( array( 'external_cron_secret' => $secret ) );
+				set_transient( 'kc_show_cron_' . get_current_user_id(), $secret, 5 * MINUTE_IN_SECONDS );
 				$this->redirect_notice( 'endpoint', 'cron_rotated' );
 				break;
 			case 'save_mapping':
@@ -906,6 +911,18 @@ class KC_Admin {
 	 */
 	private function render_endpoint_tab() {
 		$s = $this->settings->all();
+
+		// Valori mostrati una sola volta subito dopo la rigenerazione (poi spariscono al reload).
+		$uid          = get_current_user_id();
+		$show_bearer  = get_transient( 'kc_show_bearer_' . $uid );
+		if ( false !== $show_bearer ) {
+			delete_transient( 'kc_show_bearer_' . $uid );
+		}
+		$show_cron_secret = get_transient( 'kc_show_cron_' . $uid );
+		if ( false !== $show_cron_secret ) {
+			delete_transient( 'kc_show_cron_' . $uid );
+		}
+		$cron_base_url = rest_url( 'keap-connect/v1/cron' );
 		?>
 		<form method="post">
 			<?php wp_nonce_field( 'kc_save_endpoint' ); ?>
@@ -924,14 +941,16 @@ class KC_Admin {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Bearer token', 'keap-connect' ); ?></th>
 					<td>
-						<?php if ( ! empty( $s['bearer_token'] ) ) : ?>
-							<input type="password" class="large-text code kc-secret" readonly value="<?php echo esc_attr( $s['bearer_token'] ); ?>" onfocus="this.select()" />
-							<button type="button" class="button kc-reveal" data-shown="0"><?php esc_html_e( 'Show', 'keap-connect' ); ?></button>
+						<?php if ( false !== $show_bearer ) : ?>
+							<input type="text" class="large-text code" readonly value="<?php echo esc_attr( $show_bearer ); ?>" onfocus="this.select()" />
+							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
+							<p class="description kc-show-once"><?php esc_html_e( 'Copy it now: it will no longer be shown after you reload the page.', 'keap-connect' ); ?></p>
 						<?php else : ?>
-							<em class="description"><?php esc_html_e( 'None', 'keap-connect' ); ?></em>
+							<input type="text" class="large-text code" value="••••••••••••••••••••" disabled />
+							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
+							<p class="description"><?php esc_html_e( 'For security the token is not shown. Click "Regenerate" to create and view a new one.', 'keap-connect' ); ?></p>
 						<?php endif; ?>
 						<p class="description"><?php esc_html_e( 'Send as header: Authorization: Bearer <token>', 'keap-connect' ); ?></p>
-						<p class="description"><?php esc_html_e( 'Hidden for security. Use "Regenerate Bearer token" below to create a new one.', 'keap-connect' ); ?></p>
 					</td>
 				</tr>
 				<tr>
@@ -942,9 +961,17 @@ class KC_Admin {
 					<th scope="row"><?php esc_html_e( 'External cron', 'keap-connect' ); ?></th>
 					<td>
 						<label><input type="checkbox" name="enable_external_cron" value="1" <?php checked( $s['enable_external_cron'] ); ?> /> <?php esc_html_e( 'Enable the endpoint for external cron (OAuth refresh)', 'keap-connect' ); ?></label>
-						<p class="description"><?php esc_html_e( 'URL to call (GET) - contains the secret, keep it private:', 'keap-connect' ); ?></p>
-						<input type="password" class="large-text code kc-secret" readonly value="<?php echo esc_attr( $this->settings->external_cron_url() ); ?>" onfocus="this.select()" />
-						<button type="button" class="button kc-reveal" data-shown="0"><?php esc_html_e( 'Show', 'keap-connect' ); ?></button>
+						<?php if ( false !== $show_cron_secret ) : ?>
+							<p class="description"><?php esc_html_e( 'URL to call (GET) - contains the secret:', 'keap-connect' ); ?></p>
+							<input type="text" class="large-text code" readonly value="<?php echo esc_attr( add_query_arg( 'secret', rawurlencode( $show_cron_secret ), $cron_base_url ) ); ?>" onfocus="this.select()" />
+							<button type="submit" form="kc-form-rotate-cron" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
+							<p class="description kc-show-once"><?php esc_html_e( 'Copy it now: the secret will no longer be shown after you reload the page.', 'keap-connect' ); ?></p>
+						<?php else : ?>
+							<p class="description"><?php esc_html_e( 'URL to call (GET) - the secret is hidden:', 'keap-connect' ); ?></p>
+							<input type="text" class="large-text code" value="<?php echo esc_attr( $cron_base_url . '?secret=••••••' ); ?>" disabled />
+							<button type="submit" form="kc-form-rotate-cron" class="button"><?php esc_html_e( 'Regenerate cron secret', 'keap-connect' ); ?></button>
+							<p class="description"><?php esc_html_e( 'For security the secret is not shown. Click "Regenerate cron secret" to create and view a new one.', 'keap-connect' ); ?></p>
+						<?php endif; ?>
 						<p class="description">
 							<?php
 							printf(
@@ -954,7 +981,6 @@ class KC_Admin {
 							);
 							?>
 						</p>
-						<p class="description"><?php esc_html_e( 'The secret is hidden for security. Use "Regenerate cron secret" below to create a new one.', 'keap-connect' ); ?></p>
 						<p class="description"><?php esc_html_e( 'The Keap (OAuth) token is automatically refreshed every 6 hours via WP-Cron.', 'keap-connect' ); ?></p>
 					</td>
 				</tr>
@@ -998,17 +1024,17 @@ class KC_Admin {
 			<?php submit_button( __( 'Save endpoint', 'keap-connect' ) ); ?>
 		</form>
 
+		<?php // Form di rigenerazione referenziati dai pulsanti "Rigenera" accanto ai campi. ?>
+		<form method="post" id="kc-form-rotate-bearer">
+			<?php wp_nonce_field( 'kc_rotate_bearer' ); ?>
+			<input type="hidden" name="kc_action" value="rotate_bearer" />
+		</form>
+		<form method="post" id="kc-form-rotate-cron">
+			<?php wp_nonce_field( 'kc_rotate_cron_secret' ); ?>
+			<input type="hidden" name="kc_action" value="rotate_cron_secret" />
+		</form>
+
 		<div class="kc-actions-row">
-			<form method="post" style="display:inline-block">
-				<?php wp_nonce_field( 'kc_rotate_bearer' ); ?>
-				<input type="hidden" name="kc_action" value="rotate_bearer" />
-				<?php submit_button( __( 'Regenerate Bearer token', 'keap-connect' ), 'secondary', 'submit', false ); ?>
-			</form>
-			<form method="post" style="display:inline-block">
-				<?php wp_nonce_field( 'kc_rotate_cron_secret' ); ?>
-				<input type="hidden" name="kc_action" value="rotate_cron_secret" />
-				<?php submit_button( __( 'Regenerate cron secret', 'keap-connect' ), 'secondary', 'submit', false ); ?>
-			</form>
 			<form method="post" style="display:inline-block">
 				<?php wp_nonce_field( 'kc_send_test_email' ); ?>
 				<input type="hidden" name="kc_action" value="send_test_email" />

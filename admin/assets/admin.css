@@ -44,6 +44,7 @@
 
 .kc-secret { max-width: 520px; display: inline-block; vertical-align: middle; }
 .kc-reveal { margin-left: 6px; }
+.kc-show-once { color: #b26a00; font-weight: 600; }
 
 .kc-map-table td { vertical-align: top; }
 .kc-map-table .kc-target select { margin-right: 6px; margin-bottom: 4px; }

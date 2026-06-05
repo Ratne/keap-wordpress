@@ -588,3 +588,24 @@ msgstr "Nessun destinatario configurato: imposta l'email aggiuntiva e/o includi 
 
 msgid "Test email could not be sent. Check your site mail configuration."
 msgstr "Impossibile inviare l'email di test. Controlla la configurazione email del sito."
+
+msgid "Regenerate"
+msgstr "Rigenera"
+
+msgid "Copy it now: it will no longer be shown after you reload the page."
+msgstr "Copialo ora: non verrà più mostrato dopo aver ricaricato la pagina."
+
+msgid "For security the token is not shown. Click \"Regenerate\" to create and view a new one."
+msgstr "Per sicurezza il token non viene mostrato. Premi \"Rigenera\" per crearne e vederne uno nuovo."
+
+msgid "URL to call (GET) - contains the secret:"
+msgstr "URL da chiamare (GET) - contiene il secret:"
+
+msgid "Copy it now: the secret will no longer be shown after you reload the page."
+msgstr "Copialo ora: il secret non verrà più mostrato dopo aver ricaricato la pagina."
+
+msgid "URL to call (GET) - the secret is hidden:"
+msgstr "URL da chiamare (GET) - il secret è nascosto:"
+
+msgid "For security the secret is not shown. Click \"Regenerate cron secret\" to create and view a new one."
+msgstr "Per sicurezza il secret non viene mostrato. Premi \"Rigenera secret cron\" per crearne e vederne uno nuovo."

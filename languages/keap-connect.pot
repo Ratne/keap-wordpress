@@ -584,3 +584,24 @@ msgstr ""
 
 msgid "Test email could not be sent. Check your site mail configuration."
 msgstr ""
+
+msgid "Regenerate"
+msgstr ""
+
+msgid "Copy it now: it will no longer be shown after you reload the page."
+msgstr ""
+
+msgid "For security the token is not shown. Click \"Regenerate\" to create and view a new one."
+msgstr ""
+
+msgid "URL to call (GET) - contains the secret:"
+msgstr ""
+
+msgid "Copy it now: the secret will no longer be shown after you reload the page."
+msgstr ""
+
+msgid "URL to call (GET) - the secret is hidden:"
+msgstr ""
+
+msgid "For security the secret is not shown. Click \"Regenerate cron secret\" to create and view a new one."
+msgstr ""
