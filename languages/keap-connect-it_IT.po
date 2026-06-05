@@ -609,3 +609,39 @@ msgstr "URL da chiamare (GET) - il secret è nascosto:"
 
 msgid "For security the secret is not shown. Click \"Regenerate cron secret\" to create and view a new one."
 msgstr "Per sicurezza il secret non viene mostrato. Premi \"Rigenera secret cron\" per crearne e vederne uno nuovo."
+
+msgid "For security the token is not shown (stored hashed). Click \"Regenerate\" to create and view a new one."
+msgstr "Per sicurezza il token non viene mostrato (salvato hashato). Premi \"Rigenera\" per crearne e vederne uno nuovo."
+
+msgid "Secret encryption"
+msgstr "Cifratura dei segreti"
+
+msgid "Dedicated key active"
+msgstr "Chiave dedicata attiva"
+
+msgid "Secrets are encrypted with KC_ENCRYPTION_KEY from wp-config.php."
+msgstr "I segreti sono cifrati con KC_ENCRYPTION_KEY da wp-config.php."
+
+msgid "Using WordPress salts (fallback)"
+msgstr "In uso i salt di WordPress (fallback)"
+
+msgid "For stronger protection install a dedicated key. Bearer token and cron secret will be rotated, and stored Keap credentials kept (re-encrypted)."
+msgstr "Per una protezione più forte installa una chiave dedicata. Il Bearer token e il secret del cron verranno ruotati, mentre le credenziali Keap salvate vengono mantenute (ri-cifrate)."
+
+msgid "Generate & install encryption key"
+msgstr "Genera e installa chiave di cifratura"
+
+msgid "wp-config.php is not writable. Add this line manually near the top (right after <?php):"
+msgstr "wp-config.php non è scrivibile. Aggiungi questa riga manualmente in alto (subito dopo <?php):"
+
+msgid "After adding it, reconnect OAuth, re-enter the PAT/SAK and regenerate the Bearer token and cron secret (the previous ones will stop working)."
+msgstr "Dopo averla aggiunta, ricollega OAuth, reinserisci il PAT/SAK e rigenera il Bearer token e il secret del cron (i precedenti smetteranno di funzionare)."
+
+msgid "Encryption key installed in wp-config.php. Bearer token and cron secret were rotated for security."
+msgstr "Chiave di cifratura installata in wp-config.php. Bearer token e secret del cron sono stati ruotati per sicurezza."
+
+msgid "A dedicated encryption key (KC_ENCRYPTION_KEY) is already defined."
+msgstr "Una chiave di cifratura dedicata (KC_ENCRYPTION_KEY) è già definita."
+
+msgid "Could not write to wp-config.php. Add the key manually (see below)."
+msgstr "Impossibile scrivere in wp-config.php. Aggiungi la chiave manualmente (vedi sotto)."

@@ -27,7 +27,22 @@ class KC_Settings {
 	const KEAP_AUTHORIZE_URL = 'https://accounts.infusionsoft.com/app/oauth/authorize';
 
 	/**
-	 * Ritorna le impostazioni con i default applicati.
+	 * Chiavi salvate cifrate (reversibili) nel DB.
+	 *
+	 * @return array
+	 */
+	public static function encrypted_keys() {
+		return array(
+			'oauth_client_id',
+			'oauth_client_secret',
+			'oauth_access_token',
+			'oauth_refresh_token',
+			'pat_token',
+		);
+	}
+
+	/**
+	 * Ritorna le impostazioni (con segreti decifrati) e i default applicati.
 	 *
 	 * @return array
 	 */
@@ -37,7 +52,15 @@ class KC_Settings {
 		if ( ! is_array( $saved ) ) {
 			$saved = array();
 		}
-		return wp_parse_args( $saved, $defaults );
+		$merged = wp_parse_args( $saved, $defaults );
+
+		foreach ( self::encrypted_keys() as $k ) {
+			if ( isset( $merged[ $k ] ) && '' !== $merged[ $k ] ) {
+				$merged[ $k ] = KC_Crypto::decrypt( $merged[ $k ] );
+			}
+		}
+
+		return $merged;
 	}
 
 	/**
@@ -56,8 +79,8 @@ class KC_Settings {
 			'oauth_scope'         => '',
 			'pat_token'           => '',
 			'require_bearer'      => true,
-			'bearer_token'        => '',
-			'external_cron_secret' => '',
+			'bearer_token_hash'   => '',
+			'external_cron_secret_hash' => '',
 			'enable_external_cron' => false,
 			'create_if_missing'   => true,
 			'log_retention_days'  => 30,
@@ -93,6 +116,13 @@ class KC_Settings {
 	public function update( array $values ) {
 		$current = $this->all();
 		$merged  = array_merge( $current, $values );
+
+		foreach ( self::encrypted_keys() as $k ) {
+			if ( isset( $merged[ $k ] ) && '' !== $merged[ $k ] ) {
+				$merged[ $k ] = KC_Crypto::encrypt( $merged[ $k ] );
+			}
+		}
+
 		update_option( self::OPTION_SETTINGS, $merged );
 	}
 
@@ -106,13 +136,100 @@ class KC_Settings {
 		if ( null === $saved ) {
 			$saved = $this->defaults();
 		}
-		if ( empty( $saved['bearer_token'] ) ) {
-			$saved['bearer_token'] = self::generate_token();
+		if ( empty( $saved['bearer_token_hash'] ) ) {
+			$token                      = self::generate_token();
+			$saved['bearer_token_hash'] = KC_Crypto::hash_token( $token );
+			// Mostrato una sola volta alla prima apertura della scheda Endpoint.
+			set_transient( 'kc_show_bearer_initial', $token, WEEK_IN_SECONDS );
 		}
-		if ( empty( $saved['external_cron_secret'] ) ) {
-			$saved['external_cron_secret'] = self::generate_token();
+		if ( empty( $saved['external_cron_secret_hash'] ) ) {
+			$secret                            = self::generate_token();
+			$saved['external_cron_secret_hash'] = KC_Crypto::hash_token( $secret );
+			set_transient( 'kc_show_cron_initial', $secret, WEEK_IN_SECONDS );
 		}
 		update_option( self::OPTION_SETTINGS, wp_parse_args( $saved, $this->defaults() ) );
+	}
+
+	/**
+	 * Migra i segreti gia' salvati: hash dei bearer/cron in chiaro e cifratura
+	 * dei segreti Keap in chiaro. Eseguita una sola volta.
+	 *
+	 * @return void
+	 */
+	public function maybe_migrate_secrets() {
+		if ( get_option( 'kc_secrets_migrated' ) ) {
+			return;
+		}
+
+		$saved = get_option( self::OPTION_SETTINGS, null );
+		if ( is_array( $saved ) ) {
+			// Bearer legacy in chiaro -> hash.
+			if ( empty( $saved['bearer_token_hash'] ) && ! empty( $saved['bearer_token'] ) ) {
+				$saved['bearer_token_hash'] = KC_Crypto::hash_token( $saved['bearer_token'] );
+			}
+			unset( $saved['bearer_token'] );
+
+			// Cron secret legacy in chiaro -> hash.
+			if ( empty( $saved['external_cron_secret_hash'] ) && ! empty( $saved['external_cron_secret'] ) ) {
+				$saved['external_cron_secret_hash'] = KC_Crypto::hash_token( $saved['external_cron_secret'] );
+			}
+			unset( $saved['external_cron_secret'] );
+
+			// Segreti Keap in chiaro -> cifrati.
+			foreach ( self::encrypted_keys() as $k ) {
+				if ( ! empty( $saved[ $k ] ) && ! KC_Crypto::is_encrypted( $saved[ $k ] ) ) {
+					$saved[ $k ] = KC_Crypto::encrypt( $saved[ $k ] );
+				}
+			}
+
+			update_option( self::OPTION_SETTINGS, $saved );
+		}
+
+		update_option( 'kc_secrets_migrated', 1 );
+	}
+
+	/**
+	 * Ri-cifra i segreti Keap con una nuova chiave e ruota Bearer/cron.
+	 * Usata quando si installa una KC_ENCRYPTION_KEY dedicata.
+	 *
+	 * @param string $new_key Chiave binaria a 32 byte.
+	 * @return array { bearer: string, cron: string } valori in chiaro (da mostrare una volta).
+	 */
+	public function rekey_secrets( $new_key ) {
+		$plain = $this->all(); // decifrati con la chiave attuale.
+		$raw   = get_option( self::OPTION_SETTINGS, array() );
+		if ( ! is_array( $raw ) ) {
+			$raw = array();
+		}
+
+		foreach ( self::encrypted_keys() as $k ) {
+			$val       = isset( $plain[ $k ] ) ? (string) $plain[ $k ] : '';
+			$raw[ $k ] = ( '' !== $val ) ? KC_Crypto::encrypt_with( $val, $new_key ) : '';
+		}
+
+		// Bearer/cron sono hashati: non recuperabili, quindi si rigenerano con la nuova chiave.
+		$bearer = self::generate_token();
+		$cron   = self::generate_token();
+		$raw['bearer_token_hash']         = KC_Crypto::hash_token_with( $bearer, $new_key );
+		$raw['external_cron_secret_hash'] = KC_Crypto::hash_token_with( $cron, $new_key );
+
+		unset( $raw['bearer_token'], $raw['external_cron_secret'] );
+
+		update_option( self::OPTION_SETTINGS, $raw );
+
+		return array(
+			'bearer' => $bearer,
+			'cron'   => $cron,
+		);
+	}
+
+	/**
+	 * Indica se e' attiva una chiave di cifratura dedicata (KC_ENCRYPTION_KEY).
+	 *
+	 * @return bool
+	 */
+	public function has_dedicated_key() {
+		return defined( 'KC_ENCRYPTION_KEY' ) && KC_ENCRYPTION_KEY;
 	}
 
 	/**
@@ -137,13 +254,12 @@ class KC_Settings {
 	}
 
 	/**
-	 * Ritorna l'URL dell'endpoint cron esterno (con secret).
+	 * Ritorna l'URL base dell'endpoint cron esterno (senza secret).
 	 *
 	 * @return string
 	 */
 	public function external_cron_url() {
-		$secret = $this->get( 'external_cron_secret' );
-		return add_query_arg( 'secret', rawurlencode( $secret ), rest_url( 'keap-connect/v1/cron' ) );
+		return rest_url( 'keap-connect/v1/cron' );
 	}
 
 	/**

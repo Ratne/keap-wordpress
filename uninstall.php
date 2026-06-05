@@ -16,12 +16,15 @@ delete_option( 'kc_settings' );
 delete_option( 'kc_field_map' );
 delete_option( 'kc_keap_model' );
 delete_option( 'kc_db_version' );
+delete_option( 'kc_secrets_migrated' );
 
 // Rimuove eventuali transient.
 delete_transient( 'kc_oauth_state' );
 delete_transient( 'kc_notify_rate' );
 delete_transient( 'kc_auth_fail_logged' );
 delete_transient( 'kc_oauth_alert_sent' );
+delete_transient( 'kc_show_bearer_initial' );
+delete_transient( 'kc_show_cron_initial' );
 
 // Elimina la tabella di log.
 $table = $wpdb->prefix . 'kc_logs';

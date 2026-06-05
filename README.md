@@ -146,6 +146,50 @@ define( 'KC_GITHUB_TOKEN', 'ghp_xxx' );
 
 ---
 
+## Security
+
+### Secret encryption at rest
+
+Sensitive credentials are never stored in clear text in the database:
+
+- **Encrypted (reversible)** — needed to call Keap: `client_id`, `client_secret`, `access_token`, `refresh_token`, `pat_token`. Encrypted with libsodium (`sodium_crypto_secretbox`, XSalsa20-Poly1305), with an OpenSSL AES-256-GCM fallback.
+- **Hashed (one-way)** — only used for comparison: the **Bearer token** and the **external cron secret**. The database stores only an HMAC-SHA256, so they cannot be recovered, even with the key. Their clear value is shown only once, right after generation.
+
+The encryption key is **not** stored in the database. 
+
+### Recommended: dedicated key
+
+By default the key is derived from the WordPress salts. For maximum robustness (so secrets do not break if you rotate the WordPress salts), define a dedicated key in `wp-config.php`:
+
+```php
+define( 'KC_ENCRYPTION_KEY', 'PASTE_A_64_HEX_CHARACTER_KEY_HERE' );
+```
+
+Generate a 32-byte (64 hex) key with any of:
+
+```bash
+openssl rand -hex 32
+# or
+php -r 'echo bin2hex(random_bytes(32)), "\n";'
+```
+
+Or simply try from the admin area and if the wp-config.php is writable **(It shouldn't be and it shouldn't even be under the same owner as the webserver)** it will try ot show the snippet 
+
+Notes:
+
+- A value of exactly 64 hexadecimal characters is used as the raw 32-byte key; any other string is hashed to 32 bytes.
+- If the key changes or is lost, encrypted Keap credentials become unreadable and must be re-entered (OAuth reconnected); the Bearer/cron secrets can simply be regenerated.
+- Protect backups of `wp-config.php` as carefully as the database.
+- Existing installs are migrated automatically: legacy clear-text secrets are hashed/encrypted on first load.
+
+### Other measures
+
+- Admin pages require the `manage_options` capability and use nonces; secrets are masked in logs.
+- The intake endpoint can require a Bearer token (recommended); failed attempts are throttled.
+- Logged request/response bodies are size-capped, and the cron secret can be sent via the `X-KC-Cron-Secret` header instead of the query string.
+
+---
+
 ## Internationalization
 
 - Source strings are in **English**; the text domain is `keap-connect`.
@@ -177,6 +221,8 @@ plugin_keap/
 │   ├── class-kc-mapper.php       # Body -> Keap payload
 │   ├── class-kc-processor.php    # Orchestration
 │   ├── class-kc-logger.php       # Log table & queries
+│   ├── class-kc-notifier.php     # Email notifications (wp_mail)
+│   ├── class-kc-crypto.php       # Secret encryption / hashing
 │   └── class-kc-cron.php         # 6h refresh + external cron
 ├── admin/assets/                 # CSS & JS
 ├── languages/                    # .pot / .po / .mo

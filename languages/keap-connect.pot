@@ -605,3 +605,39 @@ msgstr ""
 
 msgid "For security the secret is not shown. Click \"Regenerate cron secret\" to create and view a new one."
 msgstr ""
+
+msgid "For security the token is not shown (stored hashed). Click \"Regenerate\" to create and view a new one."
+msgstr ""
+
+msgid "Secret encryption"
+msgstr ""
+
+msgid "Dedicated key active"
+msgstr ""
+
+msgid "Secrets are encrypted with KC_ENCRYPTION_KEY from wp-config.php."
+msgstr ""
+
+msgid "Using WordPress salts (fallback)"
+msgstr ""
+
+msgid "For stronger protection install a dedicated key. Bearer token and cron secret will be rotated, and stored Keap credentials kept (re-encrypted)."
+msgstr ""
+
+msgid "Generate & install encryption key"
+msgstr ""
+
+msgid "wp-config.php is not writable. Add this line manually near the top (right after <?php):"
+msgstr ""
+
+msgid "After adding it, reconnect OAuth, re-enter the PAT/SAK and regenerate the Bearer token and cron secret (the previous ones will stop working)."
+msgstr ""
+
+msgid "Encryption key installed in wp-config.php. Bearer token and cron secret were rotated for security."
+msgstr ""
+
+msgid "A dedicated encryption key (KC_ENCRYPTION_KEY) is already defined."
+msgstr ""
+
+msgid "Could not write to wp-config.php. Add the key manually (see below)."
+msgstr ""

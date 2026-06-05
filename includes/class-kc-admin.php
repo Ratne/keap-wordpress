@@ -185,14 +185,14 @@ class KC_Admin {
 				break;
 			case 'rotate_bearer':
 				$token = KC_Settings::generate_token();
-				$this->settings->update( array( 'bearer_token' => $token ) );
-				// Mostra il valore una sola volta dopo la rigenerazione.
+				// Salva solo l'hash one-way; il valore in chiaro vive solo nel transient (mostra una volta).
+				$this->settings->update( array( 'bearer_token_hash' => KC_Crypto::hash_token( $token ) ) );
 				set_transient( 'kc_show_bearer_' . get_current_user_id(), $token, 5 * MINUTE_IN_SECONDS );
 				$this->redirect_notice( 'endpoint', 'bearer_rotated' );
 				break;
 			case 'rotate_cron_secret':
 				$secret = KC_Settings::generate_token();
-				$this->settings->update( array( 'external_cron_secret' => $secret ) );
+				$this->settings->update( array( 'external_cron_secret_hash' => KC_Crypto::hash_token( $secret ) ) );
 				set_transient( 'kc_show_cron_' . get_current_user_id(), $secret, 5 * MINUTE_IN_SECONDS );
 				$this->redirect_notice( 'endpoint', 'cron_rotated' );
 				break;
@@ -215,6 +215,9 @@ class KC_Admin {
 					$this->redirect_notice( 'endpoint', 'test_email_norcpt' );
 				}
 				$this->redirect_notice( 'endpoint', $result['sent'] ? 'test_email_sent' : 'test_email_fail' );
+				break;
+			case 'install_encryption_key':
+				$this->install_encryption_key();
 				break;
 		}
 	}
@@ -612,6 +615,9 @@ class KC_Admin {
 			'test_email_sent'    => array( 'success', __( 'Test email sent to the configured recipients.', 'keap-connect' ) ),
 			'test_email_norcpt'  => array( 'error', __( 'No recipients configured: set the additional email and/or include the administrator.', 'keap-connect' ) ),
 			'test_email_fail'    => array( 'error', __( 'Test email could not be sent. Check your site mail configuration.', 'keap-connect' ) ),
+			'enc_key_installed'  => array( 'success', __( 'Encryption key installed in wp-config.php. Bearer token and cron secret were rotated for security.', 'keap-connect' ) ),
+			'enc_key_exists'     => array( 'error', __( 'A dedicated encryption key (KC_ENCRYPTION_KEY) is already defined.', 'keap-connect' ) ),
+			'enc_key_manual'     => array( 'error', __( 'Could not write to wp-config.php. Add the key manually (see below).', 'keap-connect' ) ),
 		);
 		if ( ! isset( $map[ $code ] ) ) {
 			return;
@@ -830,7 +836,45 @@ class KC_Admin {
 			</form>
 		</div>
 
+		<?php $this->render_encryption_box(); ?>
 		<?php $this->render_oauth_diagnostics(); ?>
+		<?php
+	}
+
+	/**
+	 * Sezione "Cifratura segreti": stato chiave e installazione in wp-config.php.
+	 *
+	 * @return void
+	 */
+	private function render_encryption_box() {
+		$has_key = $this->settings->has_dedicated_key();
+		$snippet = get_transient( 'kc_enc_snippet_' . get_current_user_id() );
+		if ( false !== $snippet ) {
+			delete_transient( 'kc_enc_snippet_' . get_current_user_id() );
+		}
+		?>
+		<h3><?php esc_html_e( 'Secret encryption', 'keap-connect' ); ?></h3>
+		<?php if ( $has_key ) : ?>
+			<p>
+				<span class="kc-badge kc-badge-ok"><?php esc_html_e( 'Dedicated key active', 'keap-connect' ); ?></span>
+				<span class="description"><?php esc_html_e( 'Secrets are encrypted with KC_ENCRYPTION_KEY from wp-config.php.', 'keap-connect' ); ?></span>
+			</p>
+		<?php else : ?>
+			<p>
+				<span class="kc-badge kc-badge-off"><?php esc_html_e( 'Using WordPress salts (fallback)', 'keap-connect' ); ?></span>
+			</p>
+			<p class="description"><?php esc_html_e( 'For stronger protection install a dedicated key. Bearer token and cron secret will be rotated, and stored Keap credentials kept (re-encrypted).', 'keap-connect' ); ?></p>
+			<form method="post">
+				<?php wp_nonce_field( 'kc_install_encryption_key' ); ?>
+				<input type="hidden" name="kc_action" value="install_encryption_key" />
+				<?php submit_button( __( 'Generate & install encryption key', 'keap-connect' ), 'secondary', 'submit', false ); ?>
+			</form>
+			<?php if ( false !== $snippet ) : ?>
+				<p class="description kc-show-once"><?php esc_html_e( 'wp-config.php is not writable. Add this line manually near the top (right after <?php):', 'keap-connect' ); ?></p>
+				<textarea readonly rows="2" class="large-text code" onfocus="this.select()"><?php echo esc_textarea( "define( 'KC_ENCRYPTION_KEY', '" . $snippet . "' );" ); ?></textarea>
+				<p class="description"><?php esc_html_e( 'After adding it, reconnect OAuth, re-enter the PAT/SAK and regenerate the Bearer token and cron secret (the previous ones will stop working).', 'keap-connect' ); ?></p>
+			<?php endif; ?>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -905,6 +949,98 @@ class KC_Admin {
 	}
 
 	/**
+	 * Genera e installa la KC_ENCRYPTION_KEY in wp-config.php (se scrivibile),
+	 * altrimenti prepara lo snippet da incollare a mano.
+	 *
+	 * @return void
+	 */
+	private function install_encryption_key() {
+		if ( $this->settings->has_dedicated_key() ) {
+			$this->redirect_notice( 'connessione', 'enc_key_exists' );
+		}
+
+		$hex = bin2hex( random_bytes( 32 ) );
+
+		if ( $this->write_key_to_wpconfig( $hex ) ) {
+			// Chiave scritta: ri-cifra i segreti Keap con la nuova chiave e ruota Bearer/cron.
+			$rotated = $this->settings->rekey_secrets( hex2bin( $hex ) );
+			set_transient( 'kc_show_bearer_' . get_current_user_id(), $rotated['bearer'], 5 * MINUTE_IN_SECONDS );
+			set_transient( 'kc_show_cron_' . get_current_user_id(), $rotated['cron'], 5 * MINUTE_IN_SECONDS );
+			$this->redirect_notice( 'connessione', 'enc_key_installed' );
+		}
+
+		// Non scrivibile: mostra lo snippet (una volta) senza toccare i segreti salvati.
+		set_transient( 'kc_enc_snippet_' . get_current_user_id(), $hex, 15 * MINUTE_IN_SECONDS );
+		$this->redirect_notice( 'connessione', 'enc_key_manual' );
+	}
+
+	/**
+	 * Tenta di scrivere la define KC_ENCRYPTION_KEY in wp-config.php.
+	 *
+	 * @param string $hex Chiave esadecimale (64 char).
+	 * @return bool True se scritta.
+	 */
+	private function write_key_to_wpconfig( $hex ) {
+		if ( ! preg_match( '/^[0-9a-f]{64}$/', $hex ) ) {
+			return false;
+		}
+
+		// Individua wp-config.php (in ABSPATH o un livello sopra, come fa il core).
+		$path = '';
+		if ( file_exists( ABSPATH . 'wp-config.php' ) ) {
+			$path = ABSPATH . 'wp-config.php';
+		} elseif ( file_exists( dirname( ABSPATH ) . '/wp-config.php' ) && ! file_exists( dirname( ABSPATH ) . '/wp-settings.php' ) ) {
+			$path = dirname( ABSPATH ) . '/wp-config.php';
+		}
+
+		if ( '' === $path || ! is_writable( $path ) ) {
+			return false;
+		}
+
+		$contents = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false === $contents || false !== strpos( $contents, 'KC_ENCRYPTION_KEY' ) ) {
+			return false;
+		}
+
+		$line = "define( 'KC_ENCRYPTION_KEY', '" . $hex . "' ); // Keap Connect\n";
+
+		// Inserisce prima del marker standard, altrimenti subito dopo l'apertura <?php.
+		$marker = "/* That's all, stop editing!";
+		if ( false !== strpos( $contents, $marker ) ) {
+			$new = str_replace( $marker, $line . "\n" . $marker, $contents );
+		} elseif ( preg_match( '/^<\?php\s*\n/', $contents ) ) {
+			$new = preg_replace( '/^(<\?php\s*\n)/', '$1' . $line, $contents, 1 );
+		} else {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		$written = file_put_contents( $path, $new, LOCK_EX );
+		return false !== $written;
+	}
+
+	/**
+	 * Recupera (e consuma) un valore "mostra una volta" da transient per-utente o iniziale.
+	 *
+	 * @param string $user_key    Chiave transient per utente.
+	 * @param string $initial_key Chiave transient iniziale (post-attivazione).
+	 * @return string|false
+	 */
+	private function pop_secret_transient( $user_key, $initial_key ) {
+		$v = get_transient( $user_key );
+		if ( false !== $v ) {
+			delete_transient( $user_key );
+			return $v;
+		}
+		$v = get_transient( $initial_key );
+		if ( false !== $v ) {
+			delete_transient( $initial_key );
+			return $v;
+		}
+		return false;
+	}
+
+	/**
 	 * Scheda Endpoint.
 	 *
 	 * @return void
@@ -913,16 +1049,10 @@ class KC_Admin {
 		$s = $this->settings->all();
 
 		// Valori mostrati una sola volta subito dopo la rigenerazione (poi spariscono al reload).
-		$uid          = get_current_user_id();
-		$show_bearer  = get_transient( 'kc_show_bearer_' . $uid );
-		if ( false !== $show_bearer ) {
-			delete_transient( 'kc_show_bearer_' . $uid );
-		}
-		$show_cron_secret = get_transient( 'kc_show_cron_' . $uid );
-		if ( false !== $show_cron_secret ) {
-			delete_transient( 'kc_show_cron_' . $uid );
-		}
-		$cron_base_url = rest_url( 'keap-connect/v1/cron' );
+		$uid              = get_current_user_id();
+		$show_bearer      = $this->pop_secret_transient( 'kc_show_bearer_' . $uid, 'kc_show_bearer_initial' );
+		$show_cron_secret = $this->pop_secret_transient( 'kc_show_cron_' . $uid, 'kc_show_cron_initial' );
+		$cron_base_url    = rest_url( 'keap-connect/v1/cron' );
 		?>
 		<form method="post">
 			<?php wp_nonce_field( 'kc_save_endpoint' ); ?>
@@ -945,10 +1075,13 @@ class KC_Admin {
 							<input type="text" class="large-text code" readonly value="<?php echo esc_attr( $show_bearer ); ?>" onfocus="this.select()" />
 							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
 							<p class="description kc-show-once"><?php esc_html_e( 'Copy it now: it will no longer be shown after you reload the page.', 'keap-connect' ); ?></p>
-						<?php else : ?>
+						<?php elseif ( '' !== (string) $s['bearer_token_hash'] ) : ?>
 							<input type="text" class="large-text code" value="••••••••••••••••••••" disabled />
 							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
-							<p class="description"><?php esc_html_e( 'For security the token is not shown. Click "Regenerate" to create and view a new one.', 'keap-connect' ); ?></p>
+							<p class="description"><?php esc_html_e( 'For security the token is not shown (stored hashed). Click "Regenerate" to create and view a new one.', 'keap-connect' ); ?></p>
+						<?php else : ?>
+							<em class="description"><?php esc_html_e( 'None', 'keap-connect' ); ?></em>
+							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
 						<?php endif; ?>
 						<p class="description"><?php esc_html_e( 'Send as header: Authorization: Bearer <token>', 'keap-connect' ); ?></p>
 					</td>

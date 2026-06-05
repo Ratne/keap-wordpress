@@ -72,10 +72,10 @@ class KC_Endpoint {
 			return true;
 		}
 
-		$expected = (string) $this->settings->get( 'bearer_token' );
-		$provided = $this->extract_bearer( $request );
+		$expected_hash = (string) $this->settings->get( 'bearer_token_hash' );
+		$provided      = $this->extract_bearer( $request );
 
-		if ( '' !== $expected && '' !== $provided && hash_equals( $expected, $provided ) ) {
+		if ( '' !== $expected_hash && '' !== $provided && KC_Crypto::verify_token( $provided, $expected_hash ) ) {
 			return true;
 		}
 

@@ -199,9 +199,9 @@ class KC_Cron {
 				$secret = (string) $header;
 			}
 		}
-		$expected = (string) $this->settings->get( 'external_cron_secret' );
+		$expected_hash = (string) $this->settings->get( 'external_cron_secret_hash' );
 
-		if ( '' === $expected || '' === $secret || ! hash_equals( $expected, $secret ) ) {
+		if ( '' === $expected_hash || '' === $secret || ! KC_Crypto::verify_token( $secret, $expected_hash ) ) {
 			return new WP_REST_Response( array( 'success' => false, 'message' => __( 'Invalid secret.', 'keap-connect' ) ), 401 );
 		}
 
