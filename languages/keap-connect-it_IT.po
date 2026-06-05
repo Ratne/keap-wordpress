@@ -1,0 +1,590 @@
+# Italian translation for Keap Connect.
+# Copyright (C) 2026 Ratne
+# This file is distributed under the GPL-2.0-or-later license.
+msgid ""
+msgstr ""
+"Project-Id-Version: Keap Connect 1.0.0\n"
+"Report-Msgid-Bugs-To: https://ratne.dev\n"
+"POT-Creation-Date: 2026-06-05T12:00:00+00:00\n"
+"PO-Revision-Date: 2026-06-05T12:00:00+00:00\n"
+"Last-Translator: Ratne <https://ratne.dev>\n"
+"Language-Team: Italian\n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: keap-connect\n"
+
+msgid "Keap Connect"
+msgstr "Keap Connect"
+
+msgid "First name (given_name)"
+msgstr "Nome (given_name)"
+
+msgid "Last name (family_name)"
+msgstr "Cognome (family_name)"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Phone"
+msgstr "Telefono"
+
+msgid "Company (company)"
+msgstr "Azienda (company)"
+
+msgid "Job title (job_title)"
+msgstr "Ruolo (job_title)"
+
+msgid "Address (line1)"
+msgstr "Indirizzo (line1)"
+
+msgid "Address 2 (line2)"
+msgstr "Indirizzo 2 (line2)"
+
+msgid "City (locality)"
+msgstr "Città (locality)"
+
+msgid "State/Region (region)"
+msgstr "Provincia/Regione (region)"
+
+msgid "Postal code (postal_code)"
+msgstr "CAP (postal_code)"
+
+msgid "Country (country_code)"
+msgstr "Paese (country_code)"
+
+msgid "Billing (BILLING)"
+msgstr "Fatturazione (BILLING)"
+
+msgid "Shipping (SHIPPING)"
+msgstr "Spedizione (SHIPPING)"
+
+msgid "Other (OTHER)"
+msgstr "Altro (OTHER)"
+
+msgid "Refresh token missing."
+msgstr "Refresh token assente."
+
+msgid "Client ID or Client Secret missing."
+msgstr "Client ID o Client Secret mancanti."
+
+msgid "Invalid token response."
+msgstr "Risposta token non valida."
+
+msgid "No Keap token configured."
+msgstr "Nessun token Keap configurato."
+
+msgid "Every 6 hours (Keap Connect)"
+msgstr "Ogni 6 ore (Keap Connect)"
+
+msgid "External cron disabled."
+msgstr "Cron esterno disabilitato."
+
+msgid "Invalid secret."
+msgstr "Secret non valido."
+
+msgid "No refresh needed (OAuth not in use)."
+msgstr "Nessun refresh necessario (OAuth non in uso)."
+
+msgid "OAuth refresh completed."
+msgstr "Refresh OAuth eseguito."
+
+msgid "Bearer token missing or invalid."
+msgstr "Bearer token mancante o non valido."
+
+msgid "Request received."
+msgstr "Richiesta ricevuta."
+
+msgid "Empty body or not JSON format."
+msgstr "Body vuoto o non in formato JSON."
+
+msgid "Email missing or invalid in the body."
+msgstr "Email mancante o non valida nel body."
+
+msgid "Error searching for the contact."
+msgstr "Errore nella ricerca del contatto."
+
+msgid "Contact not found, creation disabled."
+msgstr "Contatto non trovato, creazione disabilitata."
+
+msgid "Contact not found, no action taken."
+msgstr "Contatto non trovato, nessuna azione."
+
+msgid "Error creating the contact."
+msgstr "Errore nella creazione del contatto."
+
+msgid "Error updating the contact."
+msgstr "Errore nell'aggiornamento del contatto."
+
+#. translators: 1: created/updated, 2: tag count
+msgid "Contact %1$s. Tags applied: %2$d."
+msgstr "Contatto %1$s. Tag applicati: %2$d."
+
+msgid "created"
+msgstr "creato"
+
+msgid "updated"
+msgstr "aggiornato"
+
+#. translators: %s: comma-separated tag IDs
+msgid "Failed tags: %s"
+msgstr "Tag falliti: %s"
+
+msgid "Connection settings saved."
+msgstr "Impostazioni di connessione salvate."
+
+msgid "OAuth connected successfully."
+msgstr "OAuth collegato correttamente."
+
+msgid "OAuth disconnected."
+msgstr "OAuth scollegato."
+
+msgid "Error during OAuth token exchange. Check the logs."
+msgstr "Errore durante lo scambio del token OAuth. Controlla i log."
+
+msgid "OAuth state verification failed. Please try again."
+msgstr "Verifica stato OAuth fallita. Riprova."
+
+msgid "Enter and save Client ID/Secret before connecting OAuth."
+msgstr "Inserisci e salva Client ID/Secret prima di collegare OAuth."
+
+msgid "Connection to Keap successful."
+msgstr "Connessione a Keap riuscita."
+
+msgid "Connection to Keap failed. Check the logs."
+msgstr "Connessione a Keap fallita. Controlla i log."
+
+msgid "Endpoint settings saved."
+msgstr "Impostazioni endpoint salvate."
+
+msgid "Bearer token regenerated."
+msgstr "Bearer token rigenerato."
+
+msgid "Cron secret regenerated."
+msgstr "Secret cron rigenerato."
+
+msgid "Mapping saved."
+msgstr "Mappatura salvata."
+
+msgid "Custom fields updated from Keap."
+msgstr "Campi custom aggiornati da Keap."
+
+msgid "Unable to fetch fields from Keap. Check the logs."
+msgstr "Impossibile recuperare i campi da Keap. Controlla i log."
+
+msgid "Logs cleared."
+msgstr "Log svuotati."
+
+msgid "Connection"
+msgstr "Connessione"
+
+msgid "Endpoint"
+msgstr "Endpoint"
+
+msgid "Mapping"
+msgstr "Mappatura"
+
+msgid "Log"
+msgstr "Log"
+
+msgid "Authentication method"
+msgstr "Metodo di autenticazione"
+
+msgid "OAuth only"
+msgstr "Solo OAuth"
+
+msgid "PAT/SAK only"
+msgstr "Solo PAT/SAK"
+
+msgid "Both (OAuth primary, PAT/SAK fallback)"
+msgstr "Entrambi (OAuth primario, fallback PAT/SAK)"
+
+msgid "With \"Both\", if the OAuth call fails authentication it is retried with the PAT/SAK."
+msgstr "Con \"Entrambi\", se la chiamata OAuth fallisce per autenticazione si ritenta con il PAT/SAK."
+
+msgid "OAuth"
+msgstr "OAuth"
+
+msgid "Client ID"
+msgstr "Client ID"
+
+msgid "Client Secret"
+msgstr "Client Secret"
+
+msgid "Redirect URI"
+msgstr "Redirect URI"
+
+msgid "Register this URI in your Keap app settings."
+msgstr "Registra questo URI nelle impostazioni dell'app Keap."
+
+msgid "OAuth status"
+msgstr "Stato OAuth"
+
+msgid "Connected"
+msgstr "Collegato"
+
+msgid "Token expires:"
+msgstr "Scadenza token:"
+
+msgid "Not connected"
+msgstr "Non collegato"
+
+msgid "PAT / SAK"
+msgstr "PAT / SAK"
+
+msgid "Token (Personal Access Token / Service Account Key)"
+msgstr "Token (Personal Access Token / Service Account Key)"
+
+msgid "Save connection"
+msgstr "Salva connessione"
+
+msgid "Connect / reconnect OAuth"
+msgstr "Collega / ricollega OAuth"
+
+msgid "Disconnect OAuth"
+msgstr "Scollega OAuth"
+
+msgid "Test connection"
+msgstr "Testa connessione"
+
+msgid "Endpoint URL"
+msgstr "URL endpoint"
+
+msgid "Require Bearer"
+msgstr "Richiedi Bearer"
+
+msgid "Protect the endpoint with a Bearer token"
+msgstr "Proteggi l'endpoint con un Bearer token"
+
+msgid "Bearer token"
+msgstr "Bearer token"
+
+msgid "Send as header: Authorization: Bearer <token>"
+msgstr "Inviare come header: Authorization: Bearer <token>"
+
+msgid "Create if missing"
+msgstr "Crea se mancante"
+
+msgid "Create the contact if not found by email"
+msgstr "Crea il contatto se non trovato per email"
+
+msgid "External cron"
+msgstr "Cron esterno"
+
+msgid "Enable the endpoint for external cron (OAuth refresh)"
+msgstr "Abilita l'endpoint per il cron esterno (refresh OAuth)"
+
+msgid "URL to call (GET):"
+msgstr "URL da chiamare (GET):"
+
+msgid "The Keap (OAuth) token is automatically refreshed every 6 hours via WP-Cron."
+msgstr "Il token Keap (OAuth) viene rinnovato automaticamente ogni 6 ore via WP-Cron."
+
+msgid "Log retention (days)"
+msgstr "Retention log (giorni)"
+
+msgid "0 = never delete"
+msgstr "0 = non eliminare mai"
+
+msgid "Save endpoint"
+msgstr "Salva endpoint"
+
+msgid "Regenerate Bearer token"
+msgstr "Rigenera Bearer token"
+
+msgid "Regenerate cron secret"
+msgstr "Rigenera secret cron"
+
+msgid "Refresh fields from Keap"
+msgstr "Aggiorna campi da Keap"
+
+#. translators: %s: date
+msgid "Fields last updated: %s"
+msgstr "Ultimo aggiornamento campi: %s"
+
+msgid "custom fields"
+msgstr "campi custom"
+
+msgid "No custom fields fetched yet."
+msgstr "Nessun campo custom ancora recuperato."
+
+msgid "Define how the incoming body keys are mapped to Keap fields. The body \"Tag\" field (tag IDs, comma-separated) is handled automatically."
+msgstr "Definisci come le chiavi del body in ingresso vengono mappate sui campi Keap. Il campo \"Tag\" del body (ID tag, separati da virgola) viene gestito automaticamente."
+
+msgid "Body key"
+msgstr "Chiave nel body"
+
+msgid "Target type"
+msgstr "Tipo destinazione"
+
+msgid "Target field"
+msgstr "Campo destinazione"
+
+msgid "+ Add row"
+msgstr "+ Aggiungi riga"
+
+msgid "Save mapping"
+msgstr "Salva mappatura"
+
+msgid "e.g. Nome"
+msgstr "es. Nome"
+
+msgid "Standard field"
+msgstr "Campo standard"
+
+msgid "Custom field"
+msgstr "Campo custom"
+
+msgid "Address"
+msgstr "Indirizzo"
+
+msgid "No custom fields: use \"Refresh fields from Keap\"."
+msgstr "Nessun campo custom: usa \"Aggiorna campi da Keap\"."
+
+msgid "Remove"
+msgstr "Rimuovi"
+
+msgid "Search email, id, body..."
+msgstr "Cerca email, id, body..."
+
+msgid "All statuses"
+msgstr "Tutti gli stati"
+
+msgid "Received"
+msgstr "Ricevuto"
+
+msgid "Success"
+msgstr "Successo"
+
+msgid "Error"
+msgstr "Errore"
+
+msgid "Skipped"
+msgstr "Saltato"
+
+msgid "Filter"
+msgstr "Filtra"
+
+msgid "Clear all logs"
+msgstr "Svuota tutti i log"
+
+msgid "Are you sure you want to delete all logs?"
+msgstr "Sicuro di voler eliminare tutti i log?"
+
+msgid "Date"
+msgstr "Data"
+
+msgid "Dir."
+msgstr "Dir."
+
+msgid "Code"
+msgstr "Codice"
+
+msgid "Status"
+msgstr "Stato"
+
+msgid "Email / Contact"
+msgstr "Email / Contatto"
+
+msgid "Correlation"
+msgstr "Correlazione"
+
+msgid "No logs."
+msgstr "Nessun log."
+
+msgid "details"
+msgstr "dettaglio"
+
+msgid "Back to logs"
+msgstr "Torna ai log"
+
+msgid "No entries for this correlation."
+msgstr "Nessuna voce per questa correlazione."
+
+msgid "Request body"
+msgstr "Corpo della richiesta"
+
+msgid "Response body"
+msgstr "Corpo della risposta"
+
+msgid "Connection working"
+msgstr "Connessione funzionante"
+
+msgid "Connection not working"
+msgstr "Connessione non funzionante"
+
+msgid "Not tested yet"
+msgstr "Non ancora testata"
+
+#. translators: %s: date
+msgid "Last test: %s"
+msgstr "Ultimo test: %s"
+
+msgid "Access token"
+msgstr "Access token"
+
+msgid "Refresh token"
+msgstr "Refresh token"
+
+msgid "Show"
+msgstr "Mostra"
+
+msgid "Hide"
+msgstr "Nascondi"
+
+msgid "None"
+msgstr "Nessuno"
+
+msgid "OAuth diagnostics"
+msgstr "Diagnostica OAuth"
+
+msgid "No OAuth errors recorded."
+msgstr "Nessun errore OAuth registrato."
+
+msgid "Detail"
+msgstr "Dettaglio"
+
+msgid "View all errors in the Log"
+msgstr "Vedi tutti gli errori nel Log"
+
+msgid "[Keap Connect] Lead synced"
+msgstr "[Keap Connect] Lead sincronizzato"
+
+msgid "[Keap Connect] Lead sync error"
+msgstr "[Keap Connect] Errore sincronizzazione lead"
+
+#. translators: %s: email
+msgid "Email: %s"
+msgstr "Email: %s"
+
+#. translators: %s: contact id
+msgid "Contact ID: %s"
+msgstr "ID contatto: %s"
+
+#. translators: %s: status
+msgid "Status: %s"
+msgstr "Stato: %s"
+
+msgid "success"
+msgstr "successo"
+
+msgid "error"
+msgstr "errore"
+
+#. translators: %s: correlation id
+msgid "Correlation: %s"
+msgstr "Correlazione: %s"
+
+msgid "Email notifications"
+msgstr "Notifiche email"
+
+msgid "Enable notifications"
+msgstr "Abilita notifiche"
+
+msgid "Send email notifications for processed leads"
+msgstr "Invia notifiche email per i lead elaborati"
+
+msgid "Notify on"
+msgstr "Notifica per"
+
+msgid "Errors only"
+msgstr "Solo errori"
+
+msgid "All processed leads"
+msgstr "Tutti i lead elaborati"
+
+msgid "Include site administrator"
+msgstr "Includi amministratore del sito"
+
+msgid "Also send to the site administrator email"
+msgstr "Invia anche all'email dell'amministratore del sito"
+
+#. translators: %s: admin email
+msgid "Site administrator: %s"
+msgstr "Amministratore del sito: %s"
+
+msgid "Additional email"
+msgstr "Email aggiuntiva"
+
+msgid "Optional. Leave empty to notify the administrator only."
+msgstr "Opzionale. Lascia vuoto per notificare solo l'amministratore."
+
+msgid "OAuth is not connected. Please reconnect it from the plugin settings."
+msgstr "OAuth non è connesso. Riconnettilo dalle impostazioni del plugin."
+
+#. translators: %s: error detail
+msgid "OAuth token refresh failed: %s. Please reconnect it from the plugin settings."
+msgstr "Rinnovo del token OAuth fallito: %s. Riconnettilo dalle impostazioni del plugin."
+
+msgid "[Keap Connect] OAuth needs attention"
+msgstr "[Keap Connect] OAuth richiede attenzione"
+
+msgid "The following lead was processed:"
+msgstr "Il seguente lead è stato elaborato:"
+
+msgid "The following lead could not be synced to Keap:"
+msgstr "Il seguente lead non è stato sincronizzato su Keap:"
+
+#. translators: %s: outcome message
+msgid "Detail: %s"
+msgstr "Dettaglio: %s"
+
+msgid "Open the log to inspect the received body and replay it after fixing:"
+msgstr "Apri il log per ispezionare il body ricevuto e rinviarlo dopo averlo corretto:"
+
+msgid "Manual replay from admin."
+msgstr "Replay manuale dall'admin."
+
+msgid "Lead replayed. See the new result below."
+msgstr "Lead reinviato. Vedi il nuovo esito qui sotto."
+
+msgid "Invalid JSON body: nothing was sent."
+msgstr "Body JSON non valido: non è stato inviato nulla."
+
+msgid "Replay this lead"
+msgstr "Rinvia questo lead"
+
+msgid "Review or fix the received body, then resend it to Keap. The result is logged as a new entry."
+msgstr "Controlla o correggi il body ricevuto, poi rinvialo a Keap. L'esito viene registrato come nuova voce."
+
+msgid "Resend to Keap"
+msgstr "Rinvia a Keap"
+
+msgid "Resend this lead to Keap?"
+msgstr "Rinviare questo lead a Keap?"
+
+msgid "Hidden for security. Use \"Regenerate Bearer token\" below to create a new one."
+msgstr "Nascosto per sicurezza. Usa \"Rigenera Bearer token\" qui sotto per crearne uno nuovo."
+
+msgid "URL to call (GET) - contains the secret, keep it private:"
+msgstr "URL da chiamare (GET) - contiene il secret, tienilo privato:"
+
+#. translators: %s: HTTP header name
+msgid "Alternatively, send the secret as the %s header instead of the query string."
+msgstr "In alternativa, invia il secret tramite header %s invece che nella query string."
+
+msgid "The secret is hidden for security. Use \"Regenerate cron secret\" below to create a new one."
+msgstr "Il secret è nascosto per sicurezza. Usa \"Rigenera secret cron\" qui sotto per crearne uno nuovo."
+
+msgid "Send test email"
+msgstr "Invia email di test"
+
+msgid "The test email uses the recipients configured above and is sent even if notifications are disabled."
+msgstr "L'email di test usa i destinatari configurati qui sopra e viene inviata anche se le notifiche sono disabilitate."
+
+msgid "[Keap Connect] Test email"
+msgstr "[Keap Connect] Email di test"
+
+msgid "This is a test email from Keap Connect. If you received it, notifications are working."
+msgstr "Questa è un'email di test di Keap Connect. Se l'hai ricevuta, le notifiche funzionano."
+
+msgid "Test email sent to the configured recipients."
+msgstr "Email di test inviata ai destinatari configurati."
+
+msgid "No recipients configured: set the additional email and/or include the administrator."
+msgstr "Nessun destinatario configurato: imposta l'email aggiuntiva e/o includi l'amministratore."
+
+msgid "Test email could not be sent. Check your site mail configuration."
+msgstr "Impossibile inviare l'email di test. Controlla la configurazione email del sito."

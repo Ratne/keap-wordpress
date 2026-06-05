@@ -1,0 +1,9 @@
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.log
+
+# Release helper (local only)
+release.sh
+
+!vendor/
