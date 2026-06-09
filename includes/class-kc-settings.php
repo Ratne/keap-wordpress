@@ -79,6 +79,7 @@ class KC_Settings {
 			'oauth_scope'         => '',
 			'pat_token'           => '',
 			'require_bearer'      => true,
+			'allow_query_token'   => true,
 			'bearer_token_hash'   => '',
 			'external_cron_secret_hash' => '',
 			'enable_external_cron' => false,

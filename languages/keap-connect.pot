@@ -686,3 +686,18 @@ msgstr ""
 
 msgid "Could not reveal the value."
 msgstr ""
+
+msgid "Allow token via query string"
+msgstr ""
+
+msgid "Also accept the token as ?kc_token=... (for forms that cannot send headers)"
+msgstr ""
+
+msgid "Less secure than the header (the token appears in the URL). Use only if needed."
+msgstr ""
+
+msgid "Ready-to-use URL (query string):"
+msgstr ""
+
+msgid "Header: Authorization: Bearer <token> — or query string: ?kc_token=<token>"
+msgstr ""

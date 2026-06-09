@@ -75,6 +75,15 @@ class KC_Endpoint {
 		$expected_hash = (string) $this->settings->get( 'bearer_token_hash' );
 		$provided      = $this->extract_bearer( $request );
 
+		// Alcuni form non possono inviare header: in tal caso si accetta il token
+		// anche via query string (?kc_token=...), se l'opzione e' abilitata.
+		if ( '' === $provided && $this->settings->get( 'allow_query_token' ) ) {
+			$q = $request->get_param( 'kc_token' );
+			if ( is_string( $q ) ) {
+				$provided = trim( $q );
+			}
+		}
+
 		if ( '' !== $expected_hash && '' !== $provided && KC_Crypto::verify_token( $provided, $expected_hash ) ) {
 			return true;
 		}
@@ -134,6 +143,9 @@ class KC_Endpoint {
 			$body = $request->get_params();
 		}
 		$body = is_array( $body ) ? $body : array();
+
+		// Rimuove il token di autenticazione dal body: non va loggato ne' mappato.
+		unset( $body['kc_token'] );
 
 		// Log del body in ingresso.
 		$this->logger->log(

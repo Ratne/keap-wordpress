@@ -690,3 +690,18 @@ msgstr "Campo non valido."
 
 msgid "Could not reveal the value."
 msgstr "Impossibile mostrare il valore."
+
+msgid "Allow token via query string"
+msgstr "Consenti token via query string"
+
+msgid "Also accept the token as ?kc_token=... (for forms that cannot send headers)"
+msgstr "Accetta il token anche come ?kc_token=... (per form che non possono inviare header)"
+
+msgid "Less secure than the header (the token appears in the URL). Use only if needed."
+msgstr "Meno sicuro dell'header (il token compare nell'URL). Usalo solo se necessario."
+
+msgid "Ready-to-use URL (query string):"
+msgstr "URL pronto all'uso (query string):"
+
+msgid "Header: Authorization: Bearer <token> — or query string: ?kc_token=<token>"
+msgstr "Header: Authorization: Bearer <token> — oppure query string: ?kc_token=<token>"

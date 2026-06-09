@@ -3,7 +3,7 @@
  * Plugin Name: Keap Connect
  * Plugin URI: https://ratne.dev
  * Description: Exposes a generic REST endpoint that receives leads and syncs them to Keap (REST v2) with OAuth and/or PAT-SAK authentication with fallback, configurable field mapping (standard, custom, address), tag application, full logging, and token refresh via WP-Cron + optional external cron.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Ratne
  * Author URI: https://ratne.dev
  * License: GPL-2.0-or-later
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KC_VERSION', '1.0.3' );
+define( 'KC_VERSION', '1.0.4' );
 define( 'KC_PLUGIN_FILE', __FILE__ );
 define( 'KC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

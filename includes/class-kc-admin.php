@@ -572,6 +572,7 @@ class KC_Admin {
 		$this->settings->update(
 			array(
 				'require_bearer'        => ! empty( $_POST['require_bearer'] ),
+				'allow_query_token'     => ! empty( $_POST['allow_query_token'] ),
 				'enable_external_cron'  => ! empty( $_POST['enable_external_cron'] ),
 				'create_if_missing'     => ! empty( $_POST['create_if_missing'] ),
 				'log_retention_days'    => isset( $_POST['log_retention_days'] ) ? max( 0, (int) $_POST['log_retention_days'] ) : 30,
@@ -1185,12 +1186,23 @@ class KC_Admin {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><?php esc_html_e( 'Allow token via query string', 'keap-connect' ); ?></th>
+					<td>
+						<label><input type="checkbox" name="allow_query_token" value="1" <?php checked( $s['allow_query_token'] ); ?> /> <?php esc_html_e( 'Also accept the token as ?kc_token=... (for forms that cannot send headers)', 'keap-connect' ); ?></label>
+						<p class="description"><?php esc_html_e( 'Less secure than the header (the token appears in the URL). Use only if needed.', 'keap-connect' ); ?></p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><?php esc_html_e( 'Bearer token', 'keap-connect' ); ?></th>
 					<td>
 						<?php if ( false !== $show_bearer ) : ?>
 							<input type="text" class="large-text code" readonly value="<?php echo esc_attr( $show_bearer ); ?>" onfocus="this.select()" />
 							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
 							<p class="description kc-show-once"><?php esc_html_e( 'Copy it now: it will no longer be shown after you reload the page.', 'keap-connect' ); ?></p>
+							<?php if ( $s['allow_query_token'] ) : ?>
+								<p class="description"><?php esc_html_e( 'Ready-to-use URL (query string):', 'keap-connect' ); ?></p>
+								<input type="text" class="large-text code" readonly value="<?php echo esc_attr( add_query_arg( 'kc_token', rawurlencode( $show_bearer ), $this->settings->intake_url() ) ); ?>" onfocus="this.select()" />
+							<?php endif; ?>
 						<?php elseif ( '' !== (string) $s['bearer_token_hash'] ) : ?>
 							<input type="text" class="large-text code" value="••••••••••••••••••••" disabled />
 							<button type="submit" form="kc-form-rotate-bearer" class="button"><?php esc_html_e( 'Regenerate', 'keap-connect' ); ?></button>
@@ -1199,7 +1211,7 @@ class KC_Admin {
 							<em class="description"><?php esc_html_e( 'No token yet.', 'keap-connect' ); ?></em>
 							<button type="submit" form="kc-form-rotate-bearer" class="button button-primary"><?php esc_html_e( 'Generate', 'keap-connect' ); ?></button>
 						<?php endif; ?>
-						<p class="description"><?php esc_html_e( 'Send as header: Authorization: Bearer <token>', 'keap-connect' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Header: Authorization: Bearer <token> — or query string: ?kc_token=<token>', 'keap-connect' ); ?></p>
 					</td>
 				</tr>
 				<tr>
