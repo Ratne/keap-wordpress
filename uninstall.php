@@ -15,6 +15,7 @@ global $wpdb;
 delete_option( 'kc_settings' );
 delete_option( 'kc_field_map' );
 delete_option( 'kc_keap_model' );
+delete_option( 'kc_source' );
 delete_option( 'kc_db_version' );
 delete_option( 'kc_secrets_migrated' );
 

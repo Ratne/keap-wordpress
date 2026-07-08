@@ -175,7 +175,7 @@ class KC_Admin {
 	 */
 	private function current_tab() {
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'connessione';
-		$valid = array( 'connessione', 'endpoint', 'mappatura', 'log' );
+		$valid = array( 'connessione', 'endpoint', 'mappatura', 'source', 'log' );
 		return in_array( $tab, $valid, true ) ? $tab : 'connessione';
 	}
 
@@ -236,6 +236,12 @@ class KC_Admin {
 				break;
 			case 'refresh_fields':
 				$this->refresh_fields();
+				break;
+			case 'save_source':
+				$this->save_source();
+				break;
+			case 'create_utm_fields':
+				$this->create_utm_fields();
 				break;
 			case 'clear_logs':
 				$this->logger->clear_all();
@@ -713,6 +719,9 @@ class KC_Admin {
 			'mapping_saved'      => array( 'success', __( 'Mapping saved.', 'keap-connect' ) ),
 			'fields_refreshed'   => array( 'success', __( 'Custom fields updated from Keap.', 'keap-connect' ) ),
 			'fields_error'       => array( 'error', __( 'Unable to fetch fields from Keap. Check the logs.', 'keap-connect' ) ),
+			'source_saved'       => array( 'success', __( 'Source (UTM) settings saved.', 'keap-connect' ) ),
+			'utm_fields_created' => array( 'success', __( 'UTM custom fields created/linked in Keap and mapped.', 'keap-connect' ) ),
+			'utm_fields_error'   => array( 'error', __( 'Unable to create the UTM custom fields in Keap. Check the logs.', 'keap-connect' ) ),
 			'logs_cleared'       => array( 'success', __( 'Logs cleared.', 'keap-connect' ) ),
 			'replay_done'        => array( 'success', __( 'Lead replayed. See the new result below.', 'keap-connect' ) ),
 			'replay_invalid'     => array( 'error', __( 'Invalid JSON body: nothing was sent.', 'keap-connect' ) ),
@@ -751,6 +760,7 @@ class KC_Admin {
 			'connessione' => __( 'Connection', 'keap-connect' ),
 			'endpoint'    => __( 'Endpoint', 'keap-connect' ),
 			'mappatura'   => __( 'Mapping', 'keap-connect' ),
+			'source'      => __( 'Source', 'keap-connect' ),
 			'log'         => __( 'Log', 'keap-connect' ),
 		);
 		echo '<h2 class="nav-tab-wrapper">';
@@ -770,6 +780,9 @@ class KC_Admin {
 				break;
 			case 'mappatura':
 				$this->render_mapping_tab();
+				break;
+			case 'source':
+				$this->render_source_tab();
 				break;
 			case 'log':
 				$this->render_log_tab();
@@ -1443,6 +1456,288 @@ class KC_Admin {
 			<td><button type="button" class="button kc-remove-row" aria-label="<?php esc_attr_e( 'Remove', 'keap-connect' ); ?>">&times;</button></td>
 		</tr>
 		<?php
+	}
+
+	/**
+	 * Scheda Source (UTM attribution first/last touch).
+	 *
+	 * @return void
+	 */
+	private function render_source_tab() {
+		$source        = $this->settings->get_source();
+		$custom_fields = $this->settings->get_custom_fields();
+		$model         = $this->settings->get_keap_model();
+
+		$labels = array(
+			'source'   => __( 'Source', 'keap-connect' ),
+			'medium'   => __( 'Medium', 'keap-connect' ),
+			'campaign' => __( 'Campaign', 'keap-connect' ),
+			'id'       => __( 'ID', 'keap-connect' ),
+			'term'     => __( 'Term', 'keap-connect' ),
+			'content'  => __( 'Content', 'keap-connect' ),
+		);
+		?>
+		<p class="description">
+			<?php esc_html_e( 'Optional first/last touch attribution: when UTM parameters arrive in the body, they are written to Keap custom fields (first_utm_* = first touch, never overwritten; last_utm_* = last touch, always updated).', 'keap-connect' ); ?>
+		</p>
+
+		<div class="kc-actions-row">
+			<form method="post" style="display:inline-block">
+				<?php wp_nonce_field( 'kc_refresh_fields' ); ?>
+				<input type="hidden" name="kc_action" value="refresh_fields" />
+				<?php submit_button( __( 'Refresh fields from Keap', 'keap-connect' ), 'secondary', 'submit', false ); ?>
+			</form>
+			<form method="post" style="display:inline-block">
+				<?php wp_nonce_field( 'kc_create_utm_fields' ); ?>
+				<input type="hidden" name="kc_action" value="create_utm_fields" />
+				<?php submit_button( __( 'Create UTM fields in Keap', 'keap-connect' ), 'secondary', 'submit', false ); ?>
+			</form>
+			<?php if ( ! empty( $model['fetched_at'] ) ) : ?>
+				<span class="description">
+					<?php
+					printf(
+						/* translators: %s: date */
+						esc_html__( 'Fields last updated: %s', 'keap-connect' ),
+						esc_html( wp_date( 'Y-m-d H:i', (int) $model['fetched_at'] ) )
+					);
+					echo ' (' . count( $custom_fields ) . ' ' . esc_html__( 'custom fields', 'keap-connect' ) . ')';
+					?>
+				</span>
+			<?php else : ?>
+				<span class="description"><?php esc_html_e( 'No custom fields fetched yet. Use "Create UTM fields in Keap" to generate them automatically.', 'keap-connect' ); ?></span>
+			<?php endif; ?>
+		</div>
+
+		<form method="post">
+			<?php wp_nonce_field( 'kc_save_source' ); ?>
+			<input type="hidden" name="kc_action" value="save_source" />
+
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Enable UTM attribution', 'keap-connect' ); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="kc_source[enabled]" value="1" <?php checked( ! empty( $source['enabled'] ) ); ?> />
+							<?php esc_html_e( 'Capture UTM parameters from the incoming body and store them in Keap.', 'keap-connect' ); ?>
+						</label>
+					</td>
+				</tr>
+			</table>
+
+			<table class="widefat striped kc-map-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'UTM', 'keap-connect' ); ?></th>
+						<th><?php esc_html_e( 'Body key', 'keap-connect' ); ?></th>
+						<th><?php esc_html_e( 'First touch field', 'keap-connect' ); ?></th>
+						<th><?php esc_html_e( 'Last touch field', 'keap-connect' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $source['rows'] as $i => $row ) : ?>
+						<?php
+						$key         = isset( $row['key'] ) ? $row['key'] : '';
+						$name        = 'kc_source[rows][' . $i . ']';
+						$first_field = isset( $row['first_field'] ) ? (string) $row['first_field'] : '';
+						$last_field  = isset( $row['last_field'] ) ? (string) $row['last_field'] : '';
+						$label       = isset( $labels[ $key ] ) ? $labels[ $key ] : $key;
+						?>
+						<tr>
+							<td>
+								<strong><?php echo esc_html( $label ); ?></strong>
+								<input type="hidden" name="<?php echo esc_attr( $name ); ?>[key]" value="<?php echo esc_attr( $key ); ?>" />
+							</td>
+							<td>
+								<input type="text" name="<?php echo esc_attr( $name ); ?>[param]" value="<?php echo esc_attr( isset( $row['param'] ) ? $row['param'] : 'utm_' . $key ); ?>" class="regular-text" />
+							</td>
+							<td><?php $this->render_utm_field_select( $name . '[first_field]', $first_field, $custom_fields ); ?></td>
+							<td><?php $this->render_utm_field_select( $name . '[last_field]', $last_field, $custom_fields ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<p class="description">
+				<?php esc_html_e( 'For a new contact (or an existing one without any first_utm_* value) both first and last fields are set. For an existing contact that already has a first touch, only the last_utm_* fields are updated.', 'keap-connect' ); ?>
+			</p>
+
+			<?php submit_button( __( 'Save Source settings', 'keap-connect' ) ); ?>
+		</form>
+		<?php
+	}
+
+	/**
+	 * Render di un select per un custom field UTM.
+	 *
+	 * @param string $name          Nome del campo.
+	 * @param string $selected      ID selezionato.
+	 * @param array  $custom_fields Campi custom disponibili.
+	 * @return void
+	 */
+	private function render_utm_field_select( $name, $selected, array $custom_fields ) {
+		?>
+		<select name="<?php echo esc_attr( $name ); ?>">
+			<option value=""><?php esc_html_e( '— Not mapped —', 'keap-connect' ); ?></option>
+			<?php foreach ( $custom_fields as $cf ) : ?>
+				<option value="<?php echo esc_attr( $cf['id'] ); ?>" <?php selected( (string) $selected, (string) $cf['id'] ); ?>>
+					<?php echo esc_html( $cf['label'] . ' (#' . $cf['id'] . ')' ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<?php
+	}
+
+	/**
+	 * Salva la configurazione Source (UTM).
+	 *
+	 * @return void
+	 */
+	private function save_source() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verificato in handle_actions.
+		$raw = isset( $_POST['kc_source'] ) ? wp_unslash( $_POST['kc_source'] ) : array();
+
+		$rows = array();
+		if ( isset( $raw['rows'] ) && is_array( $raw['rows'] ) ) {
+			foreach ( $raw['rows'] as $item ) {
+				$rows[] = array(
+					'key'         => isset( $item['key'] ) ? sanitize_key( $item['key'] ) : '',
+					'param'       => isset( $item['param'] ) ? sanitize_text_field( $item['param'] ) : '',
+					'first_field' => isset( $item['first_field'] ) ? sanitize_text_field( $item['first_field'] ) : '',
+					'last_field'  => isset( $item['last_field'] ) ? sanitize_text_field( $item['last_field'] ) : '',
+				);
+			}
+		}
+
+		$this->settings->save_source(
+			array(
+				'enabled' => ! empty( $raw['enabled'] ),
+				'rows'    => $rows,
+			)
+		);
+
+		$this->redirect_notice( 'source', 'source_saved' );
+	}
+
+	/**
+	 * Crea (o collega se gia' esistenti) i 12 custom field UTM in Keap e li mappa.
+	 *
+	 * @return void
+	 */
+	private function create_utm_fields() {
+		$correlation = KC_Logger::new_correlation_id();
+
+		// Recupera il model aggiornato per riusare gli id gia' esistenti (evita duplicati).
+		$model_result = $this->client->get_contact_model( $correlation );
+		$existing     = array();
+		if ( $model_result['success'] && is_array( $model_result['data'] ) && isset( $model_result['data']['custom_fields'] ) && is_array( $model_result['data']['custom_fields'] ) ) {
+			foreach ( $model_result['data']['custom_fields'] as $cf ) {
+				if ( ! is_array( $cf ) ) {
+					continue;
+				}
+				$id = isset( $cf['id'] ) ? (string) $cf['id'] : ( isset( $cf['field_id'] ) ? (string) $cf['field_id'] : '' );
+				if ( '' === $id ) {
+					continue;
+				}
+				foreach ( array( 'label', 'name', 'field_name' ) as $lk ) {
+					if ( ! empty( $cf[ $lk ] ) ) {
+						$existing[ $this->normalize_label( $cf[ $lk ] ) ] = $id;
+					}
+				}
+			}
+		}
+
+		$source = $this->settings->get_source();
+		$rows   = $source['rows'];
+		$error  = false;
+
+		foreach ( $rows as $i => $row ) {
+			$key = isset( $row['key'] ) ? $row['key'] : '';
+			if ( '' === $key ) {
+				continue;
+			}
+
+			foreach ( array( 'first_field' => 'first_utm_' . $key, 'last_field' => 'last_utm_' . $key ) as $slot => $label ) {
+				// Gia' mappato: non toccare.
+				if ( ! empty( $row[ $slot ] ) ) {
+					continue;
+				}
+
+				$norm = $this->normalize_label( $label );
+				if ( isset( $existing[ $norm ] ) ) {
+					$rows[ $i ][ $slot ] = $existing[ $norm ];
+					continue;
+				}
+
+				$created = $this->client->create_custom_field( $label, $correlation );
+				if ( $created['success'] && '' !== $created['field_id'] ) {
+					$rows[ $i ][ $slot ]        = $created['field_id'];
+					$existing[ $norm ]          = $created['field_id'];
+				} else {
+					$error = true;
+				}
+			}
+		}
+
+		$this->settings->save_source(
+			array(
+				'enabled' => ! empty( $source['enabled'] ),
+				'rows'    => $rows,
+			)
+		);
+
+		// Aggiorna anche il model salvato cosi' i dropdown mostrano i nuovi campi.
+		$this->refresh_model_silent( $correlation );
+
+		$this->redirect_notice( 'source', $error ? 'utm_fields_error' : 'utm_fields_created' );
+	}
+
+	/**
+	 * Normalizza una label per confronto (lowercase, no spazi).
+	 *
+	 * @param string $label Label.
+	 * @return string
+	 */
+	private function normalize_label( $label ) {
+		return strtolower( trim( preg_replace( '/\s+/', '', (string) $label ) ) );
+	}
+
+	/**
+	 * Aggiorna silenziosamente il model dei custom field da Keap (senza redirect).
+	 *
+	 * @param string $correlation Correlazione.
+	 * @return void
+	 */
+	private function refresh_model_silent( $correlation ) {
+		$result = $this->client->get_contact_model( $correlation );
+		if ( ! $result['success'] || ! is_array( $result['data'] ) ) {
+			return;
+		}
+		$custom_fields = array();
+		$src           = isset( $result['data']['custom_fields'] ) ? $result['data']['custom_fields'] : array();
+		if ( is_array( $src ) ) {
+			foreach ( $src as $cf ) {
+				if ( ! is_array( $cf ) ) {
+					continue;
+				}
+				$id = isset( $cf['id'] ) ? $cf['id'] : ( isset( $cf['field_id'] ) ? $cf['field_id'] : '' );
+				if ( '' === $id ) {
+					continue;
+				}
+				$label = '';
+				foreach ( array( 'label', 'name', 'field_name' ) as $lk ) {
+					if ( ! empty( $cf[ $lk ] ) ) {
+						$label = $cf[ $lk ];
+						break;
+					}
+				}
+				$custom_fields[] = array(
+					'id'         => (string) $id,
+					'label'      => $label ? $label : (string) $id,
+					'field_type' => isset( $cf['field_type'] ) ? $cf['field_type'] : ( isset( $cf['type'] ) ? $cf['type'] : '' ),
+				);
+			}
+		}
+		$this->settings->save_keap_model( array( 'custom_fields' => $custom_fields ) );
 	}
 
 	/**

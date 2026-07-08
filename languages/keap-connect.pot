@@ -701,3 +701,63 @@ msgstr ""
 
 msgid "Header: Authorization: Bearer <token> — or query string: ?kc_token=<token>"
 msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Source (UTM) settings saved."
+msgstr ""
+
+msgid "UTM custom fields created/linked in Keap and mapped."
+msgstr ""
+
+msgid "Unable to create the UTM custom fields in Keap. Check the logs."
+msgstr ""
+
+msgid "Optional first/last touch attribution: when UTM parameters arrive in the body, they are written to Keap custom fields (first_utm_* = first touch, never overwritten; last_utm_* = last touch, always updated)."
+msgstr ""
+
+msgid "Create UTM fields in Keap"
+msgstr ""
+
+msgid "No custom fields fetched yet. Use \"Create UTM fields in Keap\" to generate them automatically."
+msgstr ""
+
+msgid "Enable UTM attribution"
+msgstr ""
+
+msgid "Capture UTM parameters from the incoming body and store them in Keap."
+msgstr ""
+
+msgid "UTM"
+msgstr ""
+
+msgid "First touch field"
+msgstr ""
+
+msgid "Last touch field"
+msgstr ""
+
+msgid "Medium"
+msgstr ""
+
+msgid "Campaign"
+msgstr ""
+
+msgid "ID"
+msgstr ""
+
+msgid "Term"
+msgstr ""
+
+msgid "Content"
+msgstr ""
+
+msgid "For a new contact (or an existing one without any first_utm_* value) both first and last fields are set. For an existing contact that already has a first touch, only the last_utm_* fields are updated."
+msgstr ""
+
+msgid "Save Source settings"
+msgstr ""
+
+msgid "— Not mapped —"
+msgstr ""

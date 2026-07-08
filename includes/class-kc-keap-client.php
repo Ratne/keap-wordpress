@@ -265,6 +265,74 @@ class KC_Keap_Client {
 	}
 
 	/**
+	 * Recupera i valori dei custom field di un contatto.
+	 *
+	 * La ricerca per email non li ritorna: serve una GET diretta con
+	 * optional_properties=custom_fields.
+	 *
+	 * @param string $contact_id     ID contatto.
+	 * @param string $correlation_id Correlazione.
+	 * @return array { success: bool, fields: array<field_id => content>, raw: array }
+	 */
+	public function get_contact_custom_fields( $contact_id, $correlation_id = '' ) {
+		$result = $this->request(
+			'GET',
+			'/contacts/' . rawurlencode( (string) $contact_id ),
+			array(
+				'query' => array(
+					'optional_properties' => 'custom_fields',
+				),
+			),
+			$correlation_id
+		);
+
+		$fields = array();
+		if ( $result['success'] && is_array( $result['data'] ) && isset( $result['data']['custom_fields'] ) && is_array( $result['data']['custom_fields'] ) ) {
+			foreach ( $result['data']['custom_fields'] as $cf ) {
+				if ( isset( $cf['id'] ) ) {
+					$fields[ (string) $cf['id'] ] = isset( $cf['content'] ) ? $cf['content'] : null;
+				}
+			}
+		}
+
+		$result['fields'] = $fields;
+		return $result;
+	}
+
+	/**
+	 * Crea un custom field di tipo TEXT nel modello del contatto.
+	 *
+	 * @param string $label          Etichetta del campo (es. first_utm_source).
+	 * @param string $correlation_id Correlazione.
+	 * @return array Risultato con eventuale 'field_id'.
+	 */
+	public function create_custom_field( $label, $correlation_id = '' ) {
+		$result = $this->request(
+			'POST',
+			'/contacts/model/customFields',
+			array(
+				'body' => array(
+					'label'      => $label,
+					'field_type' => 'TEXT',
+				),
+			),
+			$correlation_id
+		);
+
+		$result['field_id'] = '';
+		if ( $result['success'] && is_array( $result['data'] ) ) {
+			if ( isset( $result['data']['id'] ) ) {
+				$result['field_id'] = (string) $result['data']['id'];
+			} elseif ( isset( $result['data']['custom_fields'][0]['id'] ) ) {
+				// Alcune risposte ritornano l'intero elenco aggiornato.
+				$result['field_id'] = (string) $result['data']['custom_fields'][0]['id'];
+			}
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Testa un singolo token specifico (senza fallback) con una GET al modello.
 	 *
 	 * @param string $token          Token Bearer da usare.

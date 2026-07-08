@@ -705,3 +705,63 @@ msgstr "URL pronto all'uso (query string):"
 
 msgid "Header: Authorization: Bearer <token> — or query string: ?kc_token=<token>"
 msgstr "Header: Authorization: Bearer <token> — oppure query string: ?kc_token=<token>"
+
+msgid "Source"
+msgstr "Sorgente"
+
+msgid "Source (UTM) settings saved."
+msgstr "Impostazioni Sorgente (UTM) salvate."
+
+msgid "UTM custom fields created/linked in Keap and mapped."
+msgstr "Campi custom UTM creati/collegati in Keap e mappati."
+
+msgid "Unable to create the UTM custom fields in Keap. Check the logs."
+msgstr "Impossibile creare i campi custom UTM in Keap. Controlla i log."
+
+msgid "Optional first/last touch attribution: when UTM parameters arrive in the body, they are written to Keap custom fields (first_utm_* = first touch, never overwritten; last_utm_* = last touch, always updated)."
+msgstr "Attribuzione opzionale first/last touch: quando i parametri UTM arrivano nel body vengono scritti nei campi custom di Keap (first_utm_* = primo tocco, mai sovrascritto; last_utm_* = ultimo tocco, sempre aggiornato)."
+
+msgid "Create UTM fields in Keap"
+msgstr "Crea i campi UTM in Keap"
+
+msgid "No custom fields fetched yet. Use \"Create UTM fields in Keap\" to generate them automatically."
+msgstr "Nessun campo custom ancora recuperato. Usa \"Crea i campi UTM in Keap\" per generarli automaticamente."
+
+msgid "Enable UTM attribution"
+msgstr "Abilita attribuzione UTM"
+
+msgid "Capture UTM parameters from the incoming body and store them in Keap."
+msgstr "Cattura i parametri UTM dal body in ingresso e salvali in Keap."
+
+msgid "UTM"
+msgstr "UTM"
+
+msgid "First touch field"
+msgstr "Campo primo tocco"
+
+msgid "Last touch field"
+msgstr "Campo ultimo tocco"
+
+msgid "Medium"
+msgstr "Medium"
+
+msgid "Campaign"
+msgstr "Campagna"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "Term"
+msgstr "Termine"
+
+msgid "Content"
+msgstr "Contenuto"
+
+msgid "For a new contact (or an existing one without any first_utm_* value) both first and last fields are set. For an existing contact that already has a first touch, only the last_utm_* fields are updated."
+msgstr "Per un contatto nuovo (o esistente senza alcun valore first_utm_*) vengono valorizzati sia i campi first che last. Per un contatto esistente che ha gia' un primo tocco vengono aggiornati solo i campi last_utm_*."
+
+msgid "Save Source settings"
+msgstr "Salva impostazioni Sorgente"
+
+msgid "— Not mapped —"
+msgstr "— Non mappato —"

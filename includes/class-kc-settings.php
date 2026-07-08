@@ -17,6 +17,7 @@ class KC_Settings {
 	const OPTION_SETTINGS = 'kc_settings';
 	const OPTION_FIELD_MAP = 'kc_field_map';
 	const OPTION_KEAP_MODEL = 'kc_keap_model';
+	const OPTION_SOURCE = 'kc_source';
 
 	const AUTH_OAUTH = 'oauth';
 	const AUTH_PAT = 'pat';
@@ -353,5 +354,107 @@ class KC_Settings {
 	public function get_custom_fields() {
 		$model = $this->get_keap_model();
 		return isset( $model['custom_fields'] ) && is_array( $model['custom_fields'] ) ? $model['custom_fields'] : array();
+	}
+
+	/**
+	 * Ritorna la configurazione UTM Source attribution.
+	 *
+	 * @return array { enabled: bool, rows: array }
+	 */
+	public function get_source() {
+		$saved = get_option( self::OPTION_SOURCE, null );
+		if ( null === $saved || ! is_array( $saved ) ) {
+			return $this->default_source();
+		}
+		$defaults = $this->default_source();
+		$saved    = wp_parse_args( $saved, $defaults );
+
+		// Normalizza le righe sulle chiavi canoniche (source, medium, ...).
+		$rows_by_key = array();
+		if ( isset( $saved['rows'] ) && is_array( $saved['rows'] ) ) {
+			foreach ( $saved['rows'] as $row ) {
+				if ( isset( $row['key'] ) ) {
+					$rows_by_key[ $row['key'] ] = $row;
+				}
+			}
+		}
+
+		$rows = array();
+		foreach ( $defaults['rows'] as $def_row ) {
+			$key      = $def_row['key'];
+			$existing = isset( $rows_by_key[ $key ] ) ? $rows_by_key[ $key ] : array();
+			$rows[]   = array(
+				'key'         => $key,
+				'param'       => isset( $existing['param'] ) && '' !== $existing['param'] ? $existing['param'] : $def_row['param'],
+				'first_field' => isset( $existing['first_field'] ) ? (string) $existing['first_field'] : '',
+				'last_field'  => isset( $existing['last_field'] ) ? (string) $existing['last_field'] : '',
+			);
+		}
+
+		return array(
+			'enabled' => ! empty( $saved['enabled'] ),
+			'rows'    => $rows,
+		);
+	}
+
+	/**
+	 * Salva la configurazione UTM Source attribution.
+	 *
+	 * @param array $source { enabled: bool, rows: array }.
+	 * @return void
+	 */
+	public function save_source( array $source ) {
+		$defaults = $this->default_source();
+
+		$rows_by_key = array();
+		if ( isset( $source['rows'] ) && is_array( $source['rows'] ) ) {
+			foreach ( $source['rows'] as $row ) {
+				if ( isset( $row['key'] ) ) {
+					$rows_by_key[ $row['key'] ] = $row;
+				}
+			}
+		}
+
+		$rows = array();
+		foreach ( $defaults['rows'] as $def_row ) {
+			$key      = $def_row['key'];
+			$existing = isset( $rows_by_key[ $key ] ) ? $rows_by_key[ $key ] : array();
+			$rows[]   = array(
+				'key'         => $key,
+				'param'       => isset( $existing['param'] ) && '' !== $existing['param'] ? sanitize_text_field( $existing['param'] ) : $def_row['param'],
+				'first_field' => isset( $existing['first_field'] ) ? sanitize_text_field( (string) $existing['first_field'] ) : '',
+				'last_field'  => isset( $existing['last_field'] ) ? sanitize_text_field( (string) $existing['last_field'] ) : '',
+			);
+		}
+
+		update_option(
+			self::OPTION_SOURCE,
+			array(
+				'enabled' => ! empty( $source['enabled'] ),
+				'rows'    => $rows,
+			)
+		);
+	}
+
+	/**
+	 * Configurazione UTM di default (6 righe: source, medium, campaign, id, term, content).
+	 *
+	 * @return array
+	 */
+	public function default_source() {
+		$keys = array( 'source', 'medium', 'campaign', 'id', 'term', 'content' );
+		$rows = array();
+		foreach ( $keys as $key ) {
+			$rows[] = array(
+				'key'         => $key,
+				'param'       => 'utm_' . $key,
+				'first_field' => '',
+				'last_field'  => '',
+			);
+		}
+		return array(
+			'enabled' => false,
+			'rows'    => $rows,
+		);
 	}
 }
