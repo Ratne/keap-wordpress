@@ -737,10 +737,10 @@ msgid "UTM"
 msgstr "UTM"
 
 msgid "First touch field"
-msgstr "Campo primo tocco"
+msgstr "Campo Prima Attrivuzione"
 
 msgid "Last touch field"
-msgstr "Campo ultimo tocco"
+msgstr "Campo Ultima Attribuzione"
 
 msgid "Medium"
 msgstr "Medium"

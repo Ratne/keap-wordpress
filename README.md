@@ -188,6 +188,17 @@ Notes:
 - The intake endpoint can require a Bearer token (recommended); failed attempts are throttled.
 - Logged request/response bodies are size-capped, and the cron secret can be sent via the `X-KC-Cron-Secret` header instead of the query string.
 
+### Uninstall / data removal
+
+Deleting the plugin runs `uninstall.php`, which removes every trace it stores in the database:
+
+- All plugin options (`kc_settings`, `kc_field_map`, `kc_keap_model`, `kc_source`, `kc_db_version`, `kc_secrets_migrated`) plus a safety sweep of any `kc_*` option/transient.
+- Fixed and per-user transients (`kc_oauth_state`, `kc_notify_rate`, `kc_show_bearer_*`, `kc_show_cron_*`, `kc_enc_snippet_*`, etc.).
+- The custom log table (`{prefix}kc_logs`).
+- Scheduled cron events (`kc_refresh_oauth`) and the Plugin Update Checker artifacts (`external_updates-<slug>` option, `puc_cron_check_updates-<slug>` cron, related site transient).
+
+**Manual step:** the `KC_ENCRYPTION_KEY` constant added to `wp-config.php` is **not** removed automatically (editing `wp-config.php` during uninstall is unsafe). If you defined it, delete that line manually after uninstalling.
+
 ---
 
 ## Internationalization
